@@ -50,16 +50,56 @@ export function isDuplicateUrl(inputUrl: string, existingUrls: string[]): boolea
 }
 
 /**
- * Decodes HTML entities (e.g. &quot;, &#39;, &amp;) into clean text characters.
+ * Decodes all numeric (e.g. &#8216;, &#8217;, &#x27;, &#39;) and named HTML entities into clean human-readable text.
+ * Uses multi-pass decoding to handle double-encoded entities (e.g. &amp;#x27; -> &#x27; -> ').
  */
 export function decodeHtmlEntities(str?: string | null): string {
   if (!str) return '';
-  return str
-    .replace(/&quot;/g, '"')
-    .replace(/&#39;/g, "'")
-    .replace(/&apos;/g, "'")
-    .replace(/&amp;/g, '&')
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>')
-    .replace(/&nbsp;/g, ' ');
+
+  let curr = str;
+  let prev = '';
+
+  // Up to 3 passes to unwrap double/triple HTML entity encoding
+  for (let pass = 0; pass < 3; pass++) {
+    prev = curr;
+
+    // 1. Decode numeric decimal entities: &#8216; -> ‘, &#39; -> '
+    curr = curr.replace(/&#(\d+);?/g, (_, dec) => {
+      try {
+        const code = parseInt(dec, 10);
+        return String.fromCharCode(code);
+      } catch {
+        return _;
+      }
+    });
+
+    // 2. Decode numeric hex entities: &#x27; -> ', &#x2018; -> ‘
+    curr = curr.replace(/&#x([0-9a-fA-F]+);?/g, (_, hex) => {
+      try {
+        const code = parseInt(hex, 16);
+        return String.fromCharCode(code);
+      } catch {
+        return _;
+      }
+    });
+
+    // 3. Decode common named entities
+    curr = curr
+      .replace(/&quot;/g, '"')
+      .replace(/&apos;/g, "'")
+      .replace(/&lsquo;/g, '‘')
+      .replace(/&rsquo;/g, '’')
+      .replace(/&ldquo;/g, '“')
+      .replace(/&rdquo;/g, '”')
+      .replace(/&mdash;/g, '—')
+      .replace(/&ndash;/g, '–')
+      .replace(/&amp;/g, '&')
+      .replace(/&lt;/g, '<')
+      .replace(/&gt;/g, '>')
+      .replace(/&nbsp;/g, ' ');
+
+    if (curr === prev) break;
+  }
+
+  return curr;
 }

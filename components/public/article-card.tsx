@@ -3,6 +3,7 @@
 import React from 'react';
 import { Article } from '@/types/database';
 import { recordArticleClick } from '@/lib/data-store';
+import { decodeHtmlEntities } from '@/lib/url-normalizer';
 import { ExternalLink, PlayCircle } from 'lucide-react';
 
 interface ArticleCardProps {
@@ -42,15 +43,15 @@ export function ArticleCard({ article, accentColor = '#e11d48' }: ArticleCardPro
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-1">
             <span className="inline-block px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wider text-slate-700 bg-slate-100 rounded-md border border-slate-200">
-              {article.website_name}
+              {decodeHtmlEntities(article.website_name)}
             </span>
           </div>
           <h3 className="font-bold text-slate-900 group-hover:text-rose-600 line-clamp-2 text-base transition-colors">
-            {article.title}
+            {decodeHtmlEntities(article.title)}
           </h3>
           {article.description && (
             <p className="text-xs text-slate-600 line-clamp-1 mt-1 font-medium">
-              {article.description}
+              {decodeHtmlEntities(article.description)}
             </p>
           )}
         </div>

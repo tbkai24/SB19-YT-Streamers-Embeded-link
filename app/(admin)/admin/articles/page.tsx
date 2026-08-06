@@ -232,7 +232,7 @@ export default function ArticlesAdminPage() {
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2">
                       <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-100 text-slate-700 border border-slate-200">
-                        {art.website_name}
+                        {decodeHtmlEntities(art.website_name)}
                       </span>
                       <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
                         {(art.clicks_count || 0).toLocaleString()} clicks
