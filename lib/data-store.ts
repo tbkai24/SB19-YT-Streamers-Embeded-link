@@ -1,10 +1,11 @@
-import { Profile, Article, ArticleSubmission, ExtractedMetadata } from '@/types/database';
+import { Profile, Article, ArticleSubmission, ExtractedMetadata, AnalyticsEvent } from '@/types/database';
 import { createClient } from '@/lib/supabase/client';
 import { normalizeUrl, isDuplicateUrl } from './url-normalizer';
 
 const LOCAL_STORAGE_KEY_PROFILES = 'sb19_hub_profiles_v6';
 const LOCAL_STORAGE_KEY_ARTICLES = 'sb19_hub_articles_v6';
 const LOCAL_STORAGE_KEY_SUBMISSIONS = 'sb19_hub_submissions_v6';
+const LOCAL_STORAGE_KEY_ANALYTICS = 'sb19_hub_analytics_events_v6';
 
 // 1. PROFILES
 export function getStoredProfiles(): Profile[] {
@@ -307,6 +308,41 @@ export function submitArticleLink(
 
 import { detectDeviceType, detectCountryCode } from './device-detector';
 
+export function getStoredAnalyticsEvents(): AnalyticsEvent[] {
+  if (typeof window === 'undefined') return [];
+  try {
+    const raw = localStorage.getItem(LOCAL_STORAGE_KEY_ANALYTICS);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+
+export function saveAnalyticsEvents(events: AnalyticsEvent[]) {
+  if (typeof window !== 'undefined') {
+    localStorage.setItem(LOCAL_STORAGE_KEY_ANALYTICS, JSON.stringify(events));
+  }
+}
+
+export async function fetchAnalyticsEventsFromSupabase(profileId: string): Promise<AnalyticsEvent[]> {
+  try {
+    const supabase = createClient();
+    const { data, error } = await supabase
+      .from('analytics_events')
+      .select('*')
+      .eq('profile_id', profileId)
+      .order('created_at', { ascending: false });
+
+    if (!error && data) {
+      saveAnalyticsEvents(data as AnalyticsEvent[]);
+      return data as AnalyticsEvent[];
+    }
+  } catch {
+    // Ignore
+  }
+  return getStoredAnalyticsEvents().filter(e => e.profile_id === profileId);
+}
+
 export async function recordProfileView(profileId: string) {
   if (typeof window === 'undefined' || !profileId) return;
 
@@ -335,13 +371,32 @@ export async function recordProfileView(profileId: string) {
     saveProfiles(profiles);
   }
 
+  const nowIso = new Date().toISOString();
+  const newEvent: AnalyticsEvent = {
+    id: generateUUID(),
+    profile_id: profileId,
+    article_id: null,
+    event_type: 'profile_view',
+    visitor_hash: null,
+    country,
+    device,
+    referrer: typeof document !== 'undefined' ? document.referrer || null : null,
+    created_at: nowIso,
+  };
+
+  const stored = getStoredAnalyticsEvents();
+  saveAnalyticsEvents([newEvent, ...stored]);
+
   try {
     const supabase = createClient();
-    await supabase.from('profiles').update({
-      views_count: newCount,
-      device_breakdown: deviceMap,
-      country_breakdown: countryMap,
-    }).eq('id', profileId);
+    await Promise.all([
+      supabase.from('profiles').update({
+        views_count: newCount,
+        device_breakdown: deviceMap,
+        country_breakdown: countryMap,
+      }).eq('id', profileId),
+      supabase.from('analytics_events').insert(newEvent),
+    ]);
   } catch {
     // Ignore
   }
@@ -358,9 +413,11 @@ export async function recordArticleClick(articleId: string) {
   let newCount = 1;
   let deviceMap: Record<string, number> = { mobile: 0, desktop: 0, tablet: 0 };
   let countryMap: Record<string, number> = {};
+  let targetProfileId = '';
 
   if (idx >= 0) {
     const art = articles[idx];
+    targetProfileId = art.profile_id;
     newCount = (art.clicks_count || 0) + 1;
     art.clicks_count = newCount;
 
@@ -375,14 +432,35 @@ export async function recordArticleClick(articleId: string) {
     saveArticles(articles);
   }
 
-  try {
-    const supabase = createClient();
-    await supabase.from('articles').update({
-      clicks_count: newCount,
-      device_breakdown: deviceMap,
-      country_breakdown: countryMap,
-    }).eq('id', articleId);
-  } catch {
-    // Ignore
+  if (targetProfileId) {
+    const nowIso = new Date().toISOString();
+    const newEvent: AnalyticsEvent = {
+      id: generateUUID(),
+      profile_id: targetProfileId,
+      article_id: articleId,
+      event_type: 'article_click',
+      visitor_hash: null,
+      country,
+      device,
+      referrer: typeof document !== 'undefined' ? document.referrer || null : null,
+      created_at: nowIso,
+    };
+
+    const stored = getStoredAnalyticsEvents();
+    saveAnalyticsEvents([newEvent, ...stored]);
+
+    try {
+      const supabase = createClient();
+      await Promise.all([
+        supabase.from('articles').update({
+          clicks_count: newCount,
+          device_breakdown: deviceMap,
+          country_breakdown: countryMap,
+        }).eq('id', articleId),
+        supabase.from('analytics_events').insert(newEvent),
+      ]);
+    } catch {
+      // Ignore
+    }
   }
 }

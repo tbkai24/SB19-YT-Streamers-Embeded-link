@@ -2,9 +2,10 @@
 
 import React, { useState, useEffect } from 'react';
 import { useAdminWorkspace } from '../layout';
-import { getStoredProfiles, saveProfiles, saveProfileToSupabase } from '@/lib/data-store';
+import { getStoredProfiles, saveProfiles, saveProfileToSupabase, fetchAnalyticsEventsFromSupabase } from '@/lib/data-store';
+import { AnalyticsEvent } from '@/types/database';
 import { getCountryFlagEmoji, COUNTRY_NAMES } from '@/lib/device-detector';
-import { BarChart3, Search, Eye, MousePointerClick, ShieldCheck, Check, Save, Smartphone, Laptop, Tablet, Globe } from 'lucide-react';
+import { BarChart3, Search, Eye, MousePointerClick, ShieldCheck, Check, Save, Smartphone, Laptop, Tablet, Globe, Calendar, ChevronDown } from 'lucide-react';
 
 export default function AnalyticsAdminPage() {
   const { activeProfile, articles, submissions, refreshData } = useAdminWorkspace();
@@ -13,10 +14,20 @@ export default function AnalyticsAdminPage() {
   const [seoDescription, setSeoDescription] = useState('');
   const [savedSuccess, setSavedSuccess] = useState(false);
 
+  // Date Range Filter state: 1 Day, 1 Week, 1 Month, Custom
+  const [timeRange, setTimeRange] = useState<'1d' | '1w' | '1m' | 'custom'>('1m');
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
+  const [events, setEvents] = useState<AnalyticsEvent[]>([]);
+
   useEffect(() => {
     if (activeProfile) {
       setSeoTitle(activeProfile.seo_title || `${activeProfile.title} - SB19 YouTube Streamers`);
       setSeoDescription(activeProfile.seo_description || activeProfile.description || '');
+
+      fetchAnalyticsEventsFromSupabase(activeProfile.id).then(evs => {
+        setEvents(evs);
+      });
     }
   }, [activeProfile]);
 
@@ -26,8 +37,47 @@ export default function AnalyticsAdminPage() {
   const totalViews = activeProfile.views_count || 0;
   const totalClicks = profileArticles.reduce((sum, a) => sum + (a.clicks_count || 0), 0);
 
-  // Device Breakdown calculation
-  const devices = activeProfile.device_breakdown || { mobile: 0, desktop: 0, tablet: 0 };
+  // Real timestamp range filtering
+  const now = Date.now();
+  const filteredEvents = events.filter(ev => {
+    const evTime = new Date(ev.created_at).getTime();
+    if (isNaN(evTime)) return true;
+
+    if (timeRange === '1d') {
+      return evTime >= now - 24 * 60 * 60 * 1000;
+    } else if (timeRange === '1w') {
+      return evTime >= now - 7 * 24 * 60 * 60 * 1000;
+    } else if (timeRange === '1m') {
+      return evTime >= now - 30 * 24 * 60 * 60 * 1000;
+    } else if (timeRange === 'custom') {
+      if (!startDate && !endDate) return true;
+      const startMs = startDate ? new Date(startDate).getTime() : 0;
+      const endMs = endDate ? new Date(`${endDate}T23:59:59`).getTime() : Infinity;
+      return evTime >= startMs && evTime <= endMs;
+    }
+    return true;
+  });
+
+  // Calculate real metrics from filtered events or fallback to total profile metrics if legacy
+  const hasEventData = events.length > 0;
+
+  const displayViews = hasEventData
+    ? filteredEvents.filter(e => e.event_type === 'profile_view').length
+    : totalViews;
+
+  const displayClicks = hasEventData
+    ? filteredEvents.filter(e => e.event_type === 'article_click').length
+    : totalClicks;
+
+  // Device Breakdown calculation (real filtered timestamp events)
+  const devices = hasEventData
+    ? filteredEvents.reduce((acc, ev) => {
+        const d = ev.device || 'mobile';
+        acc[d] = (acc[d] || 0) + 1;
+        return acc;
+      }, { mobile: 0, desktop: 0, tablet: 0 } as Record<string, number>)
+    : (activeProfile.device_breakdown || { mobile: 0, desktop: 0, tablet: 0 });
+
   const mobileCount = devices.mobile || 0;
   const desktopCount = devices.desktop || 0;
   const tabletCount = devices.tablet || 0;
@@ -36,8 +86,16 @@ export default function AnalyticsAdminPage() {
   const desktopPct = Math.round((desktopCount / grandTotalDevices) * 100);
   const tabletPct = Math.round((tabletCount / grandTotalDevices) * 100);
 
-  // Country Breakdown calculation
-  const countriesMap = activeProfile.country_breakdown || {};
+  // Country Breakdown calculation (real filtered timestamp events)
+  const countriesMap = hasEventData
+    ? filteredEvents.reduce((acc, ev) => {
+        if (ev.country) {
+          acc[ev.country] = (acc[ev.country] || 0) + 1;
+        }
+        return acc;
+      }, {} as Record<string, number>)
+    : (activeProfile.country_breakdown || {});
+
   const countryList = Object.entries(countriesMap)
     .sort((a, b) => b[1] - a[1]);
 
@@ -62,14 +120,52 @@ export default function AnalyticsAdminPage() {
 
   return (
     <div className="space-y-6 animate-fade-in max-w-4xl">
-      <div>
-        <h1 className="text-xl font-extrabold text-slate-900 flex items-center gap-2">
-          <BarChart3 className="w-5 h-5 text-rose-600" />
-          <span>SEO & Workspace Analytics</span>
-        </h1>
-        <p className="text-xs text-slate-600 mt-0.5 font-medium">
-          Per-profile traffic metrics & SEO metadata for active workspace: <span className="text-rose-600 font-bold">{activeProfile.title}</span>
-        </p>
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-xl font-extrabold text-slate-900 flex items-center gap-2">
+            <BarChart3 className="w-5 h-5 text-rose-600" />
+            <span>SEO & Profile Analytics</span>
+          </h1>
+          <p className="text-xs text-slate-600 mt-0.5 font-medium">
+            Per-profile traffic metrics & SEO metadata for active profile: <span className="text-rose-600 font-bold">{activeProfile.title}</span>
+          </p>
+        </div>
+
+        {/* Date Range Selector Dropdown */}
+        <div className="flex flex-wrap items-center gap-2 shrink-0">
+          <div className="relative flex items-center">
+            <Calendar className="w-3.5 h-3.5 text-slate-400 absolute left-3 pointer-events-none" />
+            <select
+              value={timeRange}
+              onChange={(e) => setTimeRange(e.target.value as any)}
+              className="pl-8 pr-8 py-2 bg-white border border-slate-300 rounded-xl text-slate-900 text-xs font-bold focus:outline-none focus:border-rose-600 shadow-xs appearance-none cursor-pointer"
+            >
+              <option value="1d">1 Day (Last 24h)</option>
+              <option value="1w">1 Week (Last 7d)</option>
+              <option value="1m">1 Month (Last 30d)</option>
+              <option value="custom">Custom Range...</option>
+            </select>
+            <ChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-3 pointer-events-none" />
+          </div>
+
+          {timeRange === 'custom' && (
+            <div className="flex items-center gap-2 bg-white p-1 px-2.5 rounded-xl border border-slate-300 shadow-xs text-xs">
+              <input
+                type="date"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+                className="bg-transparent text-slate-900 font-semibold focus:outline-none text-xs"
+              />
+              <span className="text-slate-400 font-bold">to</span>
+              <input
+                type="date"
+                value={endDate}
+                onChange={(e) => setEndDate(e.target.value)}
+                className="bg-transparent text-slate-900 font-semibold focus:outline-none text-xs"
+              />
+            </div>
+          )}
+        </div>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -78,7 +174,7 @@ export default function AnalyticsAdminPage() {
             <span>Profile Page Visitors</span>
             <Eye className="w-4 h-4 text-rose-600" />
           </div>
-          <div className="text-2xl font-extrabold text-slate-900 mt-2">{totalViews.toLocaleString()}</div>
+          <div className="text-2xl font-extrabold text-slate-900 mt-2">{displayViews.toLocaleString()}</div>
           <div className="text-[11px] text-slate-500 mt-1 font-medium">Live visits for /{activeProfile.slug}</div>
         </div>
 
@@ -87,7 +183,7 @@ export default function AnalyticsAdminPage() {
             <span>Total Article Clicks</span>
             <MousePointerClick className="w-4 h-4 text-emerald-600" />
           </div>
-          <div className="text-2xl font-extrabold text-slate-900 mt-2">{totalClicks.toLocaleString()}</div>
+          <div className="text-2xl font-extrabold text-slate-900 mt-2">{displayClicks.toLocaleString()}</div>
           <div className="text-[11px] text-slate-500 mt-1 font-medium">Outbound clicks across all articles</div>
         </div>
 
