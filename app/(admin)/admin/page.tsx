@@ -20,9 +20,9 @@ export default function OverviewPage() {
     return (
       <div className="p-8 text-center glass-panel rounded-2xl border border-slate-200 bg-white text-slate-800 text-sm flex flex-col items-center justify-center my-6 shadow-sm">
         <Sparkles className="w-8 h-8 text-rose-600 mb-2" />
-        <h2 className="text-base font-bold text-slate-900">No Active Profile Workspace</h2>
+        <h2 className="text-base font-bold text-slate-900">No Active Profile</h2>
         <p className="text-xs text-slate-600 mt-1 max-w-sm mb-4 font-medium">
-          Create your first release profile workspace to begin adding streaming articles and social links.
+          Create your first release profile to begin adding streaming articles and social links.
         </p>
         <button
           onClick={openCreateModal}
@@ -41,7 +41,7 @@ export default function OverviewPage() {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      {/* Workspace Header Banner */}
+      {/* Profile Header Banner */}
       <div className="p-6 rounded-2xl glass-panel border border-slate-200 bg-white relative overflow-hidden flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-sm">
         <div
           className="absolute -right-16 -top-16 w-64 h-64 blur-[90px] pointer-events-none rounded-full opacity-15"
@@ -51,7 +51,7 @@ export default function OverviewPage() {
         <div>
           <div className="flex items-center gap-2 mb-1">
             <span className="px-2.5 py-0.5 rounded-md bg-rose-50 border border-rose-200 text-rose-700 text-xs font-bold uppercase tracking-wider">
-              Profile Workspace
+              Active Profile
             </span>
             <span className="text-xs text-slate-500 font-medium">/{activeProfile.slug}</span>
           </div>

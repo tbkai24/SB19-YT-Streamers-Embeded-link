@@ -265,7 +265,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 </div>
                 <div className="min-w-0">
                   <div className="text-xs font-bold text-slate-900 truncate">{activeProfile.title}</div>
-                  <div className="text-[11px] text-slate-500 font-medium truncate">Workspace Mode</div>
+                  <div className="text-[11px] text-slate-500 font-medium truncate">Active Profile</div>
                 </div>
               </div>
             )}

@@ -66,7 +66,7 @@ export default function AdminLoginPage() {
             </div>
             <h1 className="text-xl font-extrabold text-slate-900 tracking-tight">Admin Portal Access</h1>
             <p className="text-xs text-slate-600 mt-1 font-medium">
-              Sign in with your authorized admin credentials to access the management workspace.
+              Sign in with your authorized admin credentials to access active profiles.
             </p>
           </div>
 

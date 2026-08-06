@@ -178,7 +178,7 @@ export default function ArticlesAdminPage() {
         <div>
           <h1 className="text-xl font-extrabold text-slate-900">Articles Directory</h1>
           <p className="text-xs text-slate-600 mt-0.5 font-medium">
-            Manage streaming articles for workspace: <span className="text-rose-600 font-bold">{activeProfile.title}</span>
+            Manage streaming articles for profile: <span className="text-rose-600 font-bold">{activeProfile.title}</span>
           </p>
         </div>
 

@@ -113,7 +113,7 @@ export default function SubmissionsAdminPage() {
             <span>Fan Submissions Review</span>
           </h1>
           <p className="text-xs text-slate-600 mt-0.5 font-medium">
-            Pending article link submissions for workspace: <span className="text-rose-600 font-bold">{activeProfile.title}</span>
+            Pending article link submissions for profile: <span className="text-rose-600 font-bold">{activeProfile.title}</span>
           </p>
         </div>
 
