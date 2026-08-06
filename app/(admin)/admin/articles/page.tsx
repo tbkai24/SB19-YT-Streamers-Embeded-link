@@ -222,7 +222,7 @@ export default function ArticlesAdminPage() {
                   </div>
 
                   {art.thumbnail ? (
-                    <img src={art.thumbnail} alt={art.title} className="w-16 h-12 rounded-lg object-cover bg-slate-100 shrink-0 border border-slate-200" />
+                    <img src={art.thumbnail} alt={decodeHtmlEntities(art.title)} className="w-16 h-12 rounded-lg object-cover bg-slate-100 shrink-0 border border-slate-200" />
                   ) : (
                     <div className="w-16 h-12 rounded-lg bg-slate-100 shrink-0 border border-slate-200 flex items-center justify-center text-[10px] text-slate-400 font-medium">
                       No Image

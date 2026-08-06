@@ -12,6 +12,8 @@ interface ArticleCardProps {
 }
 
 export function ArticleCard({ article, accentColor = '#e11d48' }: ArticleCardProps) {
+  const [imageError, setImageError] = React.useState(false);
+
   return (
     <a
       href={article.article_url}
@@ -22,11 +24,12 @@ export function ArticleCard({ article, accentColor = '#e11d48' }: ArticleCardPro
     >
       <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
         {/* Thumbnail preview */}
-        {article.thumbnail ? (
+        {article.thumbnail && !imageError ? (
           <div className="relative w-full sm:w-28 h-28 sm:h-20 rounded-xl overflow-hidden bg-slate-100 shrink-0 border border-slate-200">
             <img
               src={article.thumbnail}
-              alt={article.title}
+              alt={decodeHtmlEntities(article.title)}
+              onError={() => setImageError(true)}
               className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
             />
             <div className="absolute inset-0 bg-black/20 group-hover:bg-black/10 transition-colors flex items-center justify-center">
@@ -34,7 +37,7 @@ export function ArticleCard({ article, accentColor = '#e11d48' }: ArticleCardPro
             </div>
           </div>
         ) : (
-          <div className="w-full sm:w-28 h-20 rounded-xl bg-slate-100 flex items-center justify-center text-slate-400 shrink-0 border border-slate-200">
+          <div className="w-full sm:w-28 h-28 sm:h-20 rounded-xl bg-slate-100 flex items-center justify-center text-slate-400 shrink-0 border border-slate-200">
             <PlayCircle className="w-8 h-8 text-slate-400" />
           </div>
         )}
