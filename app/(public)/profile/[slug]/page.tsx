@@ -4,12 +4,13 @@ import React, { useState, useEffect, use } from 'react';
 import Link from 'next/link';
 import { Profile, Article } from '@/types/database';
 import { getStoredProfiles, getStoredArticles, fetchProfilesFromSupabase, fetchArticlesFromSupabase, recordProfileView } from '@/lib/data-store';
+import { extractYouTubeId } from '@/lib/url-normalizer';
 import { SocialLinks } from '@/components/public/social-links';
 import { ArticleCard } from '@/components/public/article-card';
 import { SubmitModal } from '@/components/public/submit-modal';
 import { PublicFooter } from '@/components/public/footer';
 import { BrandLogo } from '@/components/public/logo';
-import { ArrowLeft, PlusCircle, Radio } from 'lucide-react';
+import { ArrowLeft, PlusCircle, Radio, Video } from 'lucide-react';
 
 interface ProfilePageProps {
   params: Promise<{ slug: string }>;
@@ -176,6 +177,29 @@ export default function PublicProfilePage({ params }: ProfilePageProps) {
           {/* Social Icons */}
           <SocialLinks profile={profile} />
         </div>
+
+        {/* Featured Official MV Video Player */}
+        {(() => {
+          const featuredYtId = extractYouTubeId(profile.featured_video_url || profile.youtube_url);
+          if (!featuredYtId) return null;
+          return (
+            <div className="w-full mt-5 mb-1 space-y-2">
+              <div className="flex items-center gap-1.5 px-1 text-[11px] font-extrabold uppercase tracking-wider text-slate-500">
+                <Video className="w-3.5 h-3.5 text-red-600 animate-pulse" />
+                <span>Featured Release Video</span>
+              </div>
+              <div className="w-full aspect-video rounded-2xl overflow-hidden shadow-md border border-slate-200 bg-black">
+                <iframe
+                  src={`https://www.youtube-nocookie.com/embed/${featuredYtId}?rel=0`}
+                  title={`${profile.title} Featured Video`}
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                  allowFullScreen
+                  className="w-full h-full border-0"
+                />
+              </div>
+            </div>
+          );
+        })()}
 
         {/* Streaming Articles Section */}
         <div className="w-full mt-4 space-y-4">

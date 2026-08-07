@@ -14,6 +14,7 @@ export interface Profile {
   theme: 'dark' | 'light' | 'glass';
   website_url: string | null;
   youtube_url: string | null;
+  featured_video_url?: string | null;
   facebook_url: string | null;
   instagram_url: string | null;
   x_url: string | null;

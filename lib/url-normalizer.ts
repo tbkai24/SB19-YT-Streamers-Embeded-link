@@ -42,6 +42,15 @@ export function normalizeUrl(rawUrl: string): string {
 }
 
 /**
+ * Extracts 11-character YouTube video ID from various YouTube URL formats.
+ */
+export function extractYouTubeId(url?: string | null): string | null {
+  if (!url) return null;
+  const match = url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))([\w-]{11})/);
+  return match && match[1] ? match[1] : null;
+}
+
+/**
  * Checks if a given input URL matches a canonical/normalized URL in an existing list.
  */
 export function isDuplicateUrl(inputUrl: string, existingUrls: string[]): boolean {
