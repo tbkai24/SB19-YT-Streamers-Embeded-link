@@ -4,6 +4,7 @@ import React from 'react';
 import { Article } from '@/types/database';
 import { recordArticleClick } from '@/lib/data-store';
 import { decodeHtmlEntities } from '@/lib/url-normalizer';
+import { getWebsiteBadgeStyle } from '@/lib/brand-colors';
 import { ExternalLink, PlayCircle } from 'lucide-react';
 
 interface ArticleCardProps {
@@ -13,6 +14,7 @@ interface ArticleCardProps {
 
 export function ArticleCard({ article, accentColor = '#e11d48' }: ArticleCardProps) {
   const [imageError, setImageError] = React.useState(false);
+  const brandStyle = getWebsiteBadgeStyle(article.website_name);
 
   return (
     <a
@@ -45,7 +47,14 @@ export function ArticleCard({ article, accentColor = '#e11d48' }: ArticleCardPro
         {/* Content */}
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-1">
-            <span className="inline-block px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wider text-slate-700 bg-slate-100 rounded-md border border-slate-200">
+            <span 
+              className="inline-block px-2.5 py-0.5 text-[11px] font-extrabold uppercase tracking-wider rounded-md border shadow-2xs transition-all"
+              style={{
+                backgroundColor: brandStyle.bg,
+                color: brandStyle.text,
+                borderColor: brandStyle.border,
+              }}
+            >
               {decodeHtmlEntities(article.website_name)}
             </span>
           </div>
