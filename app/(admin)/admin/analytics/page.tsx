@@ -14,8 +14,8 @@ export default function AnalyticsAdminPage() {
   const [seoDescription, setSeoDescription] = useState('');
   const [savedSuccess, setSavedSuccess] = useState(false);
 
-  // Date Range Filter state: 1 Day, 1 Week, 1 Month, All Time, Custom
-  const [timeRange, setTimeRange] = useState<'1d' | '1w' | '1m' | 'all' | 'custom'>('1m');
+  // Date Range Filter state: 1 Day (Default), 1 Week, 1 Month, All Time, Custom
+  const [timeRange, setTimeRange] = useState<'1d' | '1w' | '1m' | 'all' | 'custom'>('1d');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [events, setEvents] = useState<AnalyticsEvent[]>([]);
@@ -65,25 +65,72 @@ export default function AnalyticsAdminPage() {
     return true;
   });
 
-  // Calculate real metrics from filtered events or daily rollup stats or fallback to total profile metrics
+  const d1Cutoff = new Date(now - 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+  const d7Cutoff = new Date(now - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+  const d30Cutoff = new Date(now - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+
+  const filteredDailyStats = dailyStats.filter(ds => {
+    if (timeRange === '1d') return ds.date >= d1Cutoff;
+    if (timeRange === '1w') return ds.date >= d7Cutoff;
+    if (timeRange === '1m') return ds.date >= d30Cutoff;
+    if (timeRange === 'all') return true;
+    if (timeRange === 'custom') {
+      if (!startDate && !endDate) return true;
+      const start = startDate || '1970-01-01';
+      const end = endDate || '2099-12-31';
+      return ds.date >= start && ds.date <= end;
+    }
+    return true;
+  });
+
   const hasEventData = events.length > 0;
+  const hasDailyData = dailyStats.length > 0;
 
-  const displayViews = hasEventData
-    ? filteredEvents.filter(e => e.event_type === 'profile_view').length
-    : totalViews;
+  let displayViews = 0;
+  let displayClicks = 0;
+  let devices: Record<string, number> = { mobile: 0, desktop: 0, tablet: 0 };
+  let countriesMap: Record<string, number> = {};
 
-  const displayClicks = hasEventData
-    ? filteredEvents.filter(e => e.event_type === 'article_click').length
-    : totalClicks;
-
-  // Device Breakdown calculation (real filtered timestamp events)
-  const devices = hasEventData
-    ? filteredEvents.reduce((acc, ev) => {
-        const d = ev.device || 'mobile';
-        acc[d] = (acc[d] || 0) + 1;
-        return acc;
-      }, { mobile: 0, desktop: 0, tablet: 0 } as Record<string, number>)
-    : (activeProfile.device_breakdown || { mobile: 0, desktop: 0, tablet: 0 });
+  if (hasEventData) {
+    displayViews = filteredEvents.filter(e => e.event_type === 'profile_view').length;
+    displayClicks = filteredEvents.filter(e => e.event_type === 'article_click').length;
+    devices = filteredEvents.reduce((acc, ev) => {
+      const d = ev.device || 'mobile';
+      acc[d] = (acc[d] || 0) + 1;
+      return acc;
+    }, { mobile: 0, desktop: 0, tablet: 0 } as Record<string, number>);
+    countriesMap = filteredEvents.reduce((acc, ev) => {
+      if (ev.country) acc[ev.country] = (acc[ev.country] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+  } else if (hasDailyData) {
+    displayViews = filteredDailyStats.reduce((sum, s) => sum + (s.views_count || 0), 0);
+    displayClicks = filteredDailyStats.reduce((sum, s) => sum + (s.clicks_count || 0), 0);
+    devices = filteredDailyStats.reduce((acc, s) => {
+      const bd = s.device_breakdown || {};
+      acc.mobile = (acc.mobile || 0) + (bd.mobile || 0);
+      acc.desktop = (acc.desktop || 0) + (bd.desktop || 0);
+      acc.tablet = (acc.tablet || 0) + (bd.tablet || 0);
+      return acc;
+    }, { mobile: 0, desktop: 0, tablet: 0 } as Record<string, number>);
+    countriesMap = filteredDailyStats.reduce((acc, s) => {
+      const cd = s.country_breakdown || {};
+      Object.entries(cd).forEach(([c, cnt]) => {
+        acc[c] = (acc[c] || 0) + cnt;
+      });
+      return acc;
+    }, {} as Record<string, number>);
+  } else if (timeRange === 'all') {
+    displayViews = totalViews;
+    displayClicks = totalClicks;
+    devices = activeProfile.device_breakdown || { mobile: 0, desktop: 0, tablet: 0 };
+    countriesMap = activeProfile.country_breakdown || {};
+  } else {
+    displayViews = 0;
+    displayClicks = 0;
+    devices = { mobile: 0, desktop: 0, tablet: 0 };
+    countriesMap = {};
+  }
 
   const mobileCount = devices.mobile || 0;
   const desktopCount = devices.desktop || 0;
@@ -92,16 +139,6 @@ export default function AnalyticsAdminPage() {
   const mobilePct = Math.round((mobileCount / grandTotalDevices) * 100);
   const desktopPct = Math.round((desktopCount / grandTotalDevices) * 100);
   const tabletPct = Math.round((tabletCount / grandTotalDevices) * 100);
-
-  // Country Breakdown calculation (real filtered timestamp events)
-  const countriesMap = hasEventData
-    ? filteredEvents.reduce((acc, ev) => {
-        if (ev.country) {
-          acc[ev.country] = (acc[ev.country] || 0) + 1;
-        }
-        return acc;
-      }, {} as Record<string, number>)
-    : (activeProfile.country_breakdown || {});
 
   const countryList = Object.entries(countriesMap)
     .sort((a, b) => b[1] - a[1]);

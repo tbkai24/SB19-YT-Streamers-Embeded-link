@@ -37,7 +37,7 @@ export default function OverviewPage() {
 
   const profileArticles = articles.filter(a => a.profile_id === activeProfile.id && a.status === 'published');
   const profileSubmissions = submissions.filter(s => s.profile_id === activeProfile.id && s.status === 'pending');
-  const totalViews = profileArticles.length > 0 ? profileArticles.length * 15 : 0;
+  const totalViews = activeProfile.views_count || 0;
 
   return (
     <div className="space-y-6 animate-fade-in">
