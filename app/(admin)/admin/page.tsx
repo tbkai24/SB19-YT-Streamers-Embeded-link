@@ -1,8 +1,10 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useAdminWorkspace } from './layout';
+import { fetchDailyTrafficStatsFromSupabase } from '@/lib/data-store';
+import { normalizeReferrer } from '@/lib/device-detector';
 import {
   FileText,
   Clock,
@@ -15,6 +17,24 @@ import {
 
 export default function OverviewPage() {
   const { activeProfile, articles, submissions, openCreateModal } = useAdminWorkspace();
+  const [dailyTotalViews, setDailyTotalViews] = useState(0);
+
+  useEffect(() => {
+    if (activeProfile) {
+      fetchDailyTrafficStatsFromSupabase(activeProfile.id).then((stats) => {
+        let sum = 0;
+        stats.forEach((s) => {
+          const rd = (s as any).referrer_breakdown || {};
+          Object.entries(rd).forEach(([p, cnt]) => {
+            if (normalizeReferrer(p) !== 'Localhost') {
+              sum += (cnt as number);
+            }
+          });
+        });
+        setDailyTotalViews(sum);
+      });
+    }
+  }, [activeProfile]);
 
   if (!activeProfile) {
     return (
@@ -37,7 +57,10 @@ export default function OverviewPage() {
 
   const profileArticles = articles.filter(a => a.profile_id === activeProfile.id && a.status === 'published');
   const profileSubmissions = submissions.filter(s => s.profile_id === activeProfile.id && s.status === 'pending');
-  const totalViews = activeProfile.views_count || 0;
+  
+  const deviceSum = Object.values(activeProfile.device_breakdown || {}).reduce((a, b) => a + b, 0);
+  const countrySum = Object.values(activeProfile.country_breakdown || {}).reduce((a, b) => a + b, 0);
+  const totalViews = Math.max(activeProfile.views_count || 0, deviceSum, countrySum, dailyTotalViews);
 
   return (
     <div className="space-y-6 animate-fade-in">

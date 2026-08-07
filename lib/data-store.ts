@@ -395,6 +395,9 @@ export function getVisitorHash(): string {
 export async function recordProfileView(profileId: string) {
   if (typeof window === 'undefined' || !profileId) return;
 
+  const host = window.location.hostname;
+  if (host === 'localhost' || host === '127.0.0.1' || host === '::1') return;
+
   const device = detectDeviceType();
   const country = await detectCountryCode();
   const visitorHash = await getClientIp();
@@ -442,10 +445,10 @@ export async function recordProfileView(profileId: string) {
     const supabase = createClient();
     await Promise.all([
       supabase.from('profiles').update({
-        views_count: newCount,
         device_breakdown: deviceMap,
         country_breakdown: countryMap,
       }).eq('id', profileId),
+      supabase.rpc('increment_profile_views', { p_id: profileId }),
       supabase.from('analytics_events').insert(newEvent),
       supabase.rpc('increment_daily_profile_view', {
         p_profile_id: profileId,
@@ -462,6 +465,9 @@ export async function recordProfileView(profileId: string) {
 
 export async function recordArticleClick(articleId: string) {
   if (typeof window === 'undefined' || !articleId) return;
+
+  const host = window.location.hostname;
+  if (host === 'localhost' || host === '127.0.0.1' || host === '::1') return;
 
   const device = detectDeviceType();
   const country = await detectCountryCode();

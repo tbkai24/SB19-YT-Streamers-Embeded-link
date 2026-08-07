@@ -75,30 +75,41 @@ export function normalizeReferrer(referrerUrl?: string | null): string {
   if (!referrerUrl || typeof referrerUrl !== 'string' || !referrerUrl.trim()) {
     return 'Direct Link';
   }
-  const ref = referrerUrl.toLowerCase();
-  if (ref.includes('facebook.com') || ref.includes('fb.me') || ref.includes('fb.com')) {
+  const ref = referrerUrl.toLowerCase().trim();
+
+  if (ref.includes('localhost') || ref.includes('127.0.0.1') || ref.includes('::1')) {
+    return 'Localhost';
+  }
+  if (ref.includes('twitter') || ref.includes('t.co') || ref.includes('x.com') || ref.includes('com.twitter.android')) {
+    return 'Twitter (X)';
+  }
+  if (ref.includes('facebook') || ref.includes('fb.me') || ref.includes('fb.com') || ref.includes('com.facebook.katana') || ref.includes('com.facebook.orca')) {
     return 'Facebook';
   }
-  if (ref.includes('t.co') || ref.includes('twitter.com') || ref.includes('x.com')) {
-    return 'X (Twitter)';
-  }
-  if (ref.includes('instagram.com')) {
+  if (ref.includes('instagram') || ref.includes('com.instagram.android')) {
     return 'Instagram';
   }
-  if (ref.includes('youtube.com') || ref.includes('youtu.be')) {
+  if (ref.includes('youtube') || ref.includes('youtu.be') || ref.includes('com.google.android.youtube')) {
     return 'YouTube';
   }
-  if (ref.includes('threads.net')) {
+  if (ref.includes('threads') || ref.includes('threads.net')) {
     return 'Threads';
   }
-  if (ref.includes('tiktok.com')) {
+  if (ref.includes('tiktok') || ref.includes('musically') || ref.includes('com.ss.android.ugc.trill')) {
     return 'TikTok';
   }
-  if (ref.includes('google.')) {
+  if (ref.includes('telegram') || ref.includes('org.telegram.messenger')) {
+    return 'Telegram';
+  }
+  if (ref.includes('discord') || ref.includes('com.discord')) {
+    return 'Discord';
+  }
+  if (ref.includes('google.') || ref.includes('googlequicksearchbox')) {
     return 'Google Search';
   }
   try {
-    const domain = new URL(referrerUrl).hostname.replace('www.', '');
+    const rawUrl = ref.startsWith('android-app://') ? ref.replace('android-app://', 'https://') : ref;
+    const domain = new URL(rawUrl).hostname.replace('www.', '');
     return domain || 'Direct Link';
   } catch {
     return 'Direct Link';

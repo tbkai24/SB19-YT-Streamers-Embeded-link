@@ -83,7 +83,8 @@ export default function AnalyticsAdminPage() {
     return true;
   });
 
-  const hasEventData = events.length > 0;
+  const nonLocalhostEvents = filteredEvents.filter(e => normalizeReferrer(e.referrer) !== 'Localhost');
+  const hasEventData = nonLocalhostEvents.length > 0;
   const hasDailyData = dailyStats.length > 0;
 
   let displayViews = 0;
@@ -94,9 +95,11 @@ export default function AnalyticsAdminPage() {
   let referrersMap: Record<string, number> = {};
 
   if (hasEventData) {
-    const viewEvents = filteredEvents.filter(e => e.event_type === 'profile_view');
+    const viewEvents = nonLocalhostEvents.filter(e => e.event_type === 'profile_view');
+    const clickEvents = nonLocalhostEvents.filter(e => e.event_type === 'article_click');
+
     displayViews = viewEvents.length;
-    displayClicks = filteredEvents.filter(e => e.event_type === 'article_click').length;
+    displayClicks = clickEvents.length;
     uniqueVisitorsCount = new Set(viewEvents.map(e => e.visitor_hash || (e.country ? `${e.country}_${e.device || 'mobile'}_${new Date(e.created_at).toISOString().split('T')[0]}` : 'anon'))).size;
 
     devices = viewEvents.reduce((acc, ev) => {
@@ -112,13 +115,31 @@ export default function AnalyticsAdminPage() {
 
     referrersMap = viewEvents.reduce((acc, ev) => {
       const platform = normalizeReferrer(ev.referrer);
-      acc[platform] = (acc[platform] || 0) + 1;
+      if (platform !== 'Localhost') {
+        acc[platform] = (acc[platform] || 0) + 1;
+      }
       return acc;
     }, {} as Record<string, number>);
   } else if (hasDailyData) {
-    displayViews = filteredDailyStats.reduce((sum, s) => sum + (s.views_count || 0), 0);
+    let nonLocalhostViewsSum = 0;
+
+    referrersMap = filteredDailyStats.reduce((acc, s) => {
+      const rd = (s as any).referrer_breakdown || {};
+      Object.entries(rd).forEach(([p, cnt]) => {
+        const platform = normalizeReferrer(p);
+        const count = cnt as number;
+        if (platform !== 'Localhost') {
+          acc[platform] = (acc[platform] || 0) + count;
+          nonLocalhostViewsSum += count;
+        }
+      });
+      return acc;
+    }, {} as Record<string, number>);
+
+    displayViews = nonLocalhostViewsSum;
     displayClicks = filteredDailyStats.reduce((sum, s) => sum + (s.clicks_count || 0), 0);
     uniqueVisitorsCount = displayViews;
+
     devices = filteredDailyStats.reduce((acc, s) => {
       const bd = s.device_breakdown || {};
       acc.mobile = (acc.mobile || 0) + (bd.mobile || 0);
@@ -126,6 +147,7 @@ export default function AnalyticsAdminPage() {
       acc.tablet = (acc.tablet || 0) + (bd.tablet || 0);
       return acc;
     }, { mobile: 0, desktop: 0, tablet: 0 } as Record<string, number>);
+
     countriesMap = filteredDailyStats.reduce((acc, s) => {
       const cd = s.country_breakdown || {};
       Object.entries(cd).forEach(([c, cnt]) => {
@@ -133,23 +155,10 @@ export default function AnalyticsAdminPage() {
       });
       return acc;
     }, {} as Record<string, number>);
-    referrersMap = filteredDailyStats.reduce((acc, s) => {
-      const rd = (s as any).referrer_breakdown || {};
-      Object.entries(rd).forEach(([p, cnt]) => {
-        acc[p] = (acc[p] || 0) + (cnt as number);
-      });
-      return acc;
-    }, {} as Record<string, number>);
-  } else if (timeRange === 'all') {
-    displayViews = totalViews;
-    uniqueVisitorsCount = totalViews;
-    displayClicks = totalClicks;
-    devices = activeProfile.device_breakdown || { mobile: 0, desktop: 0, tablet: 0 };
-    countriesMap = activeProfile.country_breakdown || {};
   } else {
     displayViews = 0;
-    uniqueVisitorsCount = 0;
     displayClicks = 0;
+    uniqueVisitorsCount = 0;
     devices = { mobile: 0, desktop: 0, tablet: 0 };
     countriesMap = {};
   }
