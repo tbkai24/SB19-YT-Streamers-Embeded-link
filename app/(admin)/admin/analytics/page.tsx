@@ -97,7 +97,7 @@ export default function AnalyticsAdminPage() {
     const viewEvents = filteredEvents.filter(e => e.event_type === 'profile_view');
     displayViews = viewEvents.length;
     displayClicks = filteredEvents.filter(e => e.event_type === 'article_click').length;
-    uniqueVisitorsCount = new Set(viewEvents.map(e => e.visitor_hash || e.id)).size;
+    uniqueVisitorsCount = new Set(viewEvents.map(e => e.visitor_hash || (e.country ? `${e.country}_${e.device || 'mobile'}_${new Date(e.created_at).toISOString().split('T')[0]}` : 'anon'))).size;
 
     devices = viewEvents.reduce((acc, ev) => {
       const d = ev.device || 'mobile';

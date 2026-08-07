@@ -1,7 +1,7 @@
 import { Profile, Article, ArticleSubmission, ExtractedMetadata, AnalyticsEvent, DailyTrafficStat } from '@/types/database';
 import { createClient } from '@/lib/supabase/client';
 import { normalizeUrl, isDuplicateUrl } from './url-normalizer';
-import { detectDeviceType, detectCountryCode, normalizeReferrer } from './device-detector';
+import { detectDeviceType, detectCountryCode, normalizeReferrer, getClientIp } from './device-detector';
 
 const LOCAL_STORAGE_KEY_PROFILES = 'sb19_hub_profiles_v6';
 const LOCAL_STORAGE_KEY_ARTICLES = 'sb19_hub_articles_v6';
@@ -397,7 +397,7 @@ export async function recordProfileView(profileId: string) {
 
   const device = detectDeviceType();
   const country = await detectCountryCode();
-  const visitorHash = getVisitorHash();
+  const visitorHash = await getClientIp();
 
   const profiles = getStoredProfiles();
   const idx = profiles.findIndex(p => p.id === profileId);
@@ -465,7 +465,7 @@ export async function recordArticleClick(articleId: string) {
 
   const device = detectDeviceType();
   const country = await detectCountryCode();
-  const visitorHash = getVisitorHash();
+  const visitorHash = await getClientIp();
 
   const articles = getStoredArticles();
   const idx = articles.findIndex(a => a.id === articleId);

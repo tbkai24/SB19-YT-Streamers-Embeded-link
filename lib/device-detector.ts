@@ -104,3 +104,37 @@ export function normalizeReferrer(referrerUrl?: string | null): string {
     return 'Direct Link';
   }
 }
+
+let cachedClientIp = '';
+
+export async function getClientIp(): Promise<string> {
+  if (typeof window === 'undefined') return '127.0.0.1';
+  if (cachedClientIp) return cachedClientIp;
+
+  try {
+    const cached = sessionStorage.getItem('sb19_user_client_ip');
+    if (cached) {
+      cachedClientIp = cached;
+      return cached;
+    }
+
+    const res = await fetch('https://api.ipify.org?format=json', { signal: AbortSignal.timeout(1500) });
+    if (res.ok) {
+      const data = await res.json();
+      if (data.ip) {
+        cachedClientIp = data.ip;
+        sessionStorage.setItem('sb19_user_client_ip', data.ip);
+        return data.ip;
+      }
+    }
+  } catch {
+    // Ignore timeout
+  }
+
+  let fallbackHash = sessionStorage.getItem('sb19_ip_fallback');
+  if (!fallbackHash) {
+    fallbackHash = 'ip_' + Math.random().toString(36).substring(2, 11);
+    sessionStorage.setItem('sb19_ip_fallback', fallbackHash);
+  }
+  return fallbackHash;
+}
