@@ -1,6 +1,7 @@
 import { Profile, Article, ArticleSubmission, ExtractedMetadata, AnalyticsEvent, DailyTrafficStat } from '@/types/database';
 import { createClient } from '@/lib/supabase/client';
 import { normalizeUrl, isDuplicateUrl } from './url-normalizer';
+import { detectDeviceType, detectCountryCode, normalizeReferrer } from './device-detector';
 
 const LOCAL_STORAGE_KEY_PROFILES = 'sb19_hub_profiles_v6';
 const LOCAL_STORAGE_KEY_ARTICLES = 'sb19_hub_articles_v6';
@@ -307,8 +308,6 @@ export function submitArticleLink(
   return { success: true, message: 'Thank you! Your article submission has been received for review.', submission: newSubmission };
 }
 
-import { detectDeviceType, detectCountryCode } from './device-detector';
-
 export function getStoredAnalyticsEvents(): AnalyticsEvent[] {
   if (typeof window === 'undefined') return [];
   try {
@@ -379,11 +378,26 @@ export async function fetchDailyTrafficStatsFromSupabase(profileId: string): Pro
   return getStoredDailyTrafficStats().filter(s => s.profile_id === profileId);
 }
 
+export function getVisitorHash(): string {
+  if (typeof window === 'undefined') return 'anon';
+  try {
+    let hash = localStorage.getItem('sb19_visitor_hash');
+    if (!hash) {
+      hash = 'v_' + Math.random().toString(36).substring(2, 11) + Date.now().toString(36);
+      localStorage.setItem('sb19_visitor_hash', hash);
+    }
+    return hash;
+  } catch {
+    return 'anon';
+  }
+}
+
 export async function recordProfileView(profileId: string) {
   if (typeof window === 'undefined' || !profileId) return;
 
   const device = detectDeviceType();
   const country = await detectCountryCode();
+  const visitorHash = getVisitorHash();
 
   const profiles = getStoredProfiles();
   const idx = profiles.findIndex(p => p.id === profileId);
@@ -414,7 +428,7 @@ export async function recordProfileView(profileId: string) {
     profile_id: profileId,
     article_id: null,
     event_type: 'profile_view',
-    visitor_hash: null,
+    visitor_hash: visitorHash,
     country,
     device,
     referrer: typeof document !== 'undefined' ? document.referrer || null : null,
@@ -438,6 +452,7 @@ export async function recordProfileView(profileId: string) {
         p_date: todayStr,
         p_device: device,
         p_country: country,
+        p_referrer: normalizeReferrer(newEvent.referrer),
       }),
     ]);
   } catch {
@@ -450,6 +465,7 @@ export async function recordArticleClick(articleId: string) {
 
   const device = detectDeviceType();
   const country = await detectCountryCode();
+  const visitorHash = getVisitorHash();
 
   const articles = getStoredArticles();
   const idx = articles.findIndex(a => a.id === articleId);
@@ -483,7 +499,7 @@ export async function recordArticleClick(articleId: string) {
       profile_id: targetProfileId,
       article_id: articleId,
       event_type: 'article_click',
-      visitor_hash: null,
+      visitor_hash: visitorHash,
       country,
       device,
       referrer: typeof document !== 'undefined' ? document.referrer || null : null,

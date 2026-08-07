@@ -70,3 +70,37 @@ export const COUNTRY_NAMES: Record<string, string> = {
   DE: 'Germany',
   FR: 'France',
 };
+
+export function normalizeReferrer(referrerUrl?: string | null): string {
+  if (!referrerUrl || typeof referrerUrl !== 'string' || !referrerUrl.trim()) {
+    return 'Direct Link';
+  }
+  const ref = referrerUrl.toLowerCase();
+  if (ref.includes('facebook.com') || ref.includes('fb.me') || ref.includes('fb.com')) {
+    return 'Facebook';
+  }
+  if (ref.includes('t.co') || ref.includes('twitter.com') || ref.includes('x.com')) {
+    return 'X (Twitter)';
+  }
+  if (ref.includes('instagram.com')) {
+    return 'Instagram';
+  }
+  if (ref.includes('youtube.com') || ref.includes('youtu.be')) {
+    return 'YouTube';
+  }
+  if (ref.includes('threads.net')) {
+    return 'Threads';
+  }
+  if (ref.includes('tiktok.com')) {
+    return 'TikTok';
+  }
+  if (ref.includes('google.')) {
+    return 'Google Search';
+  }
+  try {
+    const domain = new URL(referrerUrl).hostname.replace('www.', '');
+    return domain || 'Direct Link';
+  } catch {
+    return 'Direct Link';
+  }
+}

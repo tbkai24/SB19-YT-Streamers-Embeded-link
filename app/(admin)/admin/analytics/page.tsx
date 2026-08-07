@@ -4,8 +4,8 @@ import React, { useState, useEffect } from 'react';
 import { useAdminWorkspace } from '../layout';
 import { getStoredProfiles, saveProfiles, saveProfileToSupabase, fetchAnalyticsEventsFromSupabase, fetchDailyTrafficStatsFromSupabase } from '@/lib/data-store';
 import { AnalyticsEvent, DailyTrafficStat } from '@/types/database';
-import { getCountryFlagEmoji, COUNTRY_NAMES } from '@/lib/device-detector';
-import { BarChart3, Search, Eye, MousePointerClick, ShieldCheck, Check, Save, Smartphone, Laptop, Tablet, Globe, Calendar, ChevronDown } from 'lucide-react';
+import { getCountryFlagEmoji, COUNTRY_NAMES, normalizeReferrer } from '@/lib/device-detector';
+import { BarChart3, Search, Eye, MousePointerClick, ShieldCheck, Check, Save, Smartphone, Laptop, Tablet, Globe, Calendar, ChevronDown, Users, Share2 } from 'lucide-react';
 
 export default function AnalyticsAdminPage() {
   const { activeProfile, articles, submissions, refreshData } = useAdminWorkspace();
@@ -87,25 +87,38 @@ export default function AnalyticsAdminPage() {
   const hasDailyData = dailyStats.length > 0;
 
   let displayViews = 0;
+  let uniqueVisitorsCount = 0;
   let displayClicks = 0;
   let devices: Record<string, number> = { mobile: 0, desktop: 0, tablet: 0 };
   let countriesMap: Record<string, number> = {};
+  let referrersMap: Record<string, number> = {};
 
   if (hasEventData) {
-    displayViews = filteredEvents.filter(e => e.event_type === 'profile_view').length;
+    const viewEvents = filteredEvents.filter(e => e.event_type === 'profile_view');
+    displayViews = viewEvents.length;
     displayClicks = filteredEvents.filter(e => e.event_type === 'article_click').length;
-    devices = filteredEvents.reduce((acc, ev) => {
+    uniqueVisitorsCount = new Set(viewEvents.map(e => e.visitor_hash || e.id)).size;
+
+    devices = viewEvents.reduce((acc, ev) => {
       const d = ev.device || 'mobile';
       acc[d] = (acc[d] || 0) + 1;
       return acc;
     }, { mobile: 0, desktop: 0, tablet: 0 } as Record<string, number>);
-    countriesMap = filteredEvents.reduce((acc, ev) => {
+
+    countriesMap = viewEvents.reduce((acc, ev) => {
       if (ev.country) acc[ev.country] = (acc[ev.country] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+
+    referrersMap = viewEvents.reduce((acc, ev) => {
+      const platform = normalizeReferrer(ev.referrer);
+      acc[platform] = (acc[platform] || 0) + 1;
       return acc;
     }, {} as Record<string, number>);
   } else if (hasDailyData) {
     displayViews = filteredDailyStats.reduce((sum, s) => sum + (s.views_count || 0), 0);
     displayClicks = filteredDailyStats.reduce((sum, s) => sum + (s.clicks_count || 0), 0);
+    uniqueVisitorsCount = displayViews;
     devices = filteredDailyStats.reduce((acc, s) => {
       const bd = s.device_breakdown || {};
       acc.mobile = (acc.mobile || 0) + (bd.mobile || 0);
@@ -116,17 +129,26 @@ export default function AnalyticsAdminPage() {
     countriesMap = filteredDailyStats.reduce((acc, s) => {
       const cd = s.country_breakdown || {};
       Object.entries(cd).forEach(([c, cnt]) => {
-        acc[c] = (acc[c] || 0) + cnt;
+        acc[c] = (acc[c] || 0) + (cnt as number);
+      });
+      return acc;
+    }, {} as Record<string, number>);
+    referrersMap = filteredDailyStats.reduce((acc, s) => {
+      const rd = (s as any).referrer_breakdown || {};
+      Object.entries(rd).forEach(([p, cnt]) => {
+        acc[p] = (acc[p] || 0) + (cnt as number);
       });
       return acc;
     }, {} as Record<string, number>);
   } else if (timeRange === 'all') {
     displayViews = totalViews;
+    uniqueVisitorsCount = totalViews;
     displayClicks = totalClicks;
     devices = activeProfile.device_breakdown || { mobile: 0, desktop: 0, tablet: 0 };
     countriesMap = activeProfile.country_breakdown || {};
   } else {
     displayViews = 0;
+    uniqueVisitorsCount = 0;
     displayClicks = 0;
     devices = { mobile: 0, desktop: 0, tablet: 0 };
     countriesMap = {};
@@ -140,8 +162,8 @@ export default function AnalyticsAdminPage() {
   const desktopPct = Math.round((desktopCount / grandTotalDevices) * 100);
   const tabletPct = Math.round((tabletCount / grandTotalDevices) * 100);
 
-  const countryList = Object.entries(countriesMap)
-    .sort((a, b) => b[1] - a[1]);
+  const countryList = Object.entries(countriesMap).sort((a, b) => b[1] - a[1]);
+  const referrerList = Object.entries(referrersMap).sort((a, b) => b[1] - a[1]);
 
   const handleSaveSeo = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -213,14 +235,23 @@ export default function AnalyticsAdminPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="p-5 rounded-2xl glass-card border border-slate-200 bg-white shadow-xs">
           <div className="flex items-center justify-between text-slate-500 text-xs font-bold">
-            <span>Profile Page Visitors</span>
+            <span>Total Page Views</span>
             <Eye className="w-4 h-4 text-rose-600" />
           </div>
           <div className="text-2xl font-extrabold text-slate-900 mt-2">{displayViews.toLocaleString()}</div>
-          <div className="text-[11px] text-slate-500 mt-1 font-medium">Live visits for /{activeProfile.slug}</div>
+          <div className="text-[11px] text-slate-500 mt-1 font-medium">All visits & page refreshes</div>
+        </div>
+
+        <div className="p-5 rounded-2xl glass-card border border-slate-200 bg-white shadow-xs">
+          <div className="flex items-center justify-between text-slate-500 text-xs font-bold">
+            <span>Unique Views</span>
+            <Users className="w-4 h-4 text-blue-600" />
+          </div>
+          <div className="text-2xl font-extrabold text-slate-900 mt-2">{uniqueVisitorsCount.toLocaleString()}</div>
+          <div className="text-[11px] text-slate-500 mt-1 font-medium">Unique individual fans per date range</div>
         </div>
 
         <div className="p-5 rounded-2xl glass-card border border-slate-200 bg-white shadow-xs">
@@ -229,27 +260,27 @@ export default function AnalyticsAdminPage() {
             <MousePointerClick className="w-4 h-4 text-emerald-600" />
           </div>
           <div className="text-2xl font-extrabold text-slate-900 mt-2">{displayClicks.toLocaleString()}</div>
-          <div className="text-[11px] text-slate-500 mt-1 font-medium">Outbound clicks across all articles</div>
+          <div className="text-[11px] text-slate-500 mt-1 font-medium">Outbound clicks across articles</div>
         </div>
 
         <div className="p-5 rounded-2xl glass-card border border-slate-200 bg-white shadow-xs">
           <div className="flex items-center justify-between text-slate-500 text-xs font-bold">
-            <span>Valid Published Articles</span>
+            <span>Valid Articles</span>
             <ShieldCheck className="w-4 h-4 text-amber-600" />
           </div>
           <div className="text-2xl font-extrabold text-emerald-600 mt-2">{profileArticles.length}</div>
-          <div className="text-[11px] text-slate-500 mt-1 font-medium">Valid active streaming links</div>
+          <div className="text-[11px] text-slate-500 mt-1 font-medium">Active streaming links</div>
         </div>
       </div>
 
-      {/* Device & Country Geolocation Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      {/* Device, Country Geolocation & Traffic Platforms Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {/* Device Breakdown Card */}
         <div className="p-6 rounded-2xl glass-panel border border-slate-200 bg-white space-y-4 shadow-xs">
           <div className="flex items-center justify-between border-b border-slate-200 pb-3">
             <h2 className="text-sm font-bold text-slate-900 flex items-center gap-2">
               <Smartphone className="w-4 h-4 text-rose-600" />
-              <span>Visitor Device Types</span>
+              <span>Visitor Devices</span>
             </h2>
             <span className="text-[11px] text-slate-500 font-semibold">Mobile vs Laptop</span>
           </div>
@@ -273,7 +304,35 @@ export default function AnalyticsAdminPage() {
           </div>
         </div>
 
-        {/* Top Visitor Countries Card */}
+        {/* Traffic Platforms / Referrers Card (Middle) */}
+        <div className="p-6 rounded-2xl glass-panel border border-slate-200 bg-white space-y-4 shadow-xs">
+          <div className="flex items-center justify-between border-b border-slate-200 pb-3">
+            <h2 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+              <Share2 className="w-4 h-4 text-emerald-600" />
+              <span>Traffic Platforms</span>
+            </h2>
+            <span className="text-[11px] text-slate-500 font-semibold">Social & Web Direct</span>
+          </div>
+
+          {referrerList.length === 0 ? (
+            <p className="text-xs text-slate-500 font-medium py-3 text-center">
+              Direct Link visits.
+            </p>
+          ) : (
+            <div className="space-y-2 max-h-36 overflow-y-auto pr-1">
+              {referrerList.map(([platform, count]) => (
+                <div key={platform} className="flex items-center justify-between p-2 rounded-xl bg-slate-50 border border-slate-200 text-xs">
+                  <span className="font-bold text-slate-900">{platform}</span>
+                  <span className="px-2 py-0.5 rounded-md bg-white border border-slate-200 font-extrabold text-emerald-600">
+                    {count.toLocaleString()} visits
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Top Visitor Countries Card (End) */}
         <div className="p-6 rounded-2xl glass-panel border border-slate-200 bg-white space-y-4 shadow-xs">
           <div className="flex items-center justify-between border-b border-slate-200 pb-3">
             <h2 className="text-sm font-bold text-slate-900 flex items-center gap-2">
