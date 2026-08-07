@@ -238,7 +238,7 @@ export default function AnalyticsAdminPage() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="p-5 rounded-2xl glass-card border border-slate-200 bg-white shadow-xs">
           <div className="flex items-center justify-between text-slate-500 text-xs font-bold">
-            <span>Total Page Views</span>
+            <span>Total Profile Views</span>
             <Eye className="w-4 h-4 text-rose-600" />
           </div>
           <div className="text-2xl font-extrabold text-slate-900 mt-2">{displayViews.toLocaleString()}</div>
@@ -247,7 +247,7 @@ export default function AnalyticsAdminPage() {
 
         <div className="p-5 rounded-2xl glass-card border border-slate-200 bg-white shadow-xs">
           <div className="flex items-center justify-between text-slate-500 text-xs font-bold">
-            <span>Unique Views</span>
+            <span>Unique Profile Views</span>
             <Users className="w-4 h-4 text-blue-600" />
           </div>
           <div className="text-2xl font-extrabold text-slate-900 mt-2">{uniqueVisitorsCount.toLocaleString()}</div>
