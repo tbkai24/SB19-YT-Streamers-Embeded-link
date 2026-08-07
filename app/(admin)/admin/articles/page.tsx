@@ -7,7 +7,7 @@ import { Article, ExtractedMetadata } from '@/types/database';
 import { getStoredArticles, saveArticles, saveArticleToSupabase, generateUUID } from '@/lib/data-store';
 import { normalizeUrl, decodeHtmlEntities } from '@/lib/url-normalizer';
 import { ImageUploadInput } from '@/components/admin/image-upload-input';
-import { Plus, Trash2, Edit2, ExternalLink, Sparkles, Loader2, Link2, MoveUp, MoveDown, X, CheckCircle2 } from 'lucide-react';
+import { Plus, Trash2, Edit2, ExternalLink, Sparkles, Loader2, Link2, MoveUp, MoveDown, X, CheckCircle2, Shuffle } from 'lucide-react';
 
 export default function ArticlesAdminPage() {
   const { activeProfile, articles, refreshData } = useAdminWorkspace();
@@ -149,6 +149,39 @@ export default function ArticlesAdminPage() {
     refreshData();
   };
 
+  const handleReshuffleOrder = async () => {
+    if (profileArticles.length < 2) return;
+    
+    // Fisher-Yates Random Shuffle
+    const shuffled = [...profileArticles];
+    for (let i = shuffled.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+
+    // Re-assign display_order (1, 2, 3...)
+    shuffled.forEach((art, idx) => {
+      art.display_order = idx + 1;
+      art.updated_at = new Date().toISOString();
+    });
+
+    const allArticles = getStoredArticles();
+    const updated = allArticles.map(a => {
+      const match = shuffled.find(s => s.id === a.id);
+      return match ? match : a;
+    });
+
+    saveArticles(updated);
+    
+    // Sync all updated display_order values to Supabase
+    for (const art of shuffled) {
+      await saveArticleToSupabase(art);
+    }
+
+    refreshData();
+    showToast(`Reshuffled ${shuffled.length} articles order randomly!`, 'success');
+  };
+
   const openEdit = (art: Article) => {
     setEditingArticle(art);
     setUrl(art.article_url);
@@ -182,16 +215,31 @@ export default function ArticlesAdminPage() {
           </p>
         </div>
 
-        <button
-          onClick={() => {
-            resetForm();
-            setIsAddOpen(true);
-          }}
-          className="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold flex items-center gap-1.5 shadow-md transition-colors cursor-pointer shrink-0"
-        >
-          <Plus className="w-4 h-4" />
-          <span>Add New Article</span>
-        </button>
+        <div className="flex items-center gap-2">
+          {profileArticles.length > 1 && (
+            <button
+              type="button"
+              onClick={handleReshuffleOrder}
+              className="px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold flex items-center gap-1.5 border border-slate-200 transition-all cursor-pointer shrink-0"
+              title="Randomize display order of all articles for this profile"
+            >
+              <Shuffle className="w-4 h-4 text-rose-600" />
+              <span>Reshuffle Order</span>
+            </button>
+          )}
+
+          <button
+            type="button"
+            onClick={() => {
+              resetForm();
+              setIsAddOpen(true);
+            }}
+            className="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold flex items-center gap-1.5 shadow-md transition-colors cursor-pointer shrink-0"
+          >
+            <Plus className="w-4 h-4" />
+            <span>Add New Article</span>
+          </button>
+        </div>
       </div>
 
       <div className="rounded-2xl glass-panel border border-slate-200 bg-white overflow-hidden shadow-xs">
