@@ -1,4 +1,4 @@
-import { Profile, Article, ArticleSubmission, ExtractedMetadata, AnalyticsEvent } from '@/types/database';
+import { Profile, Article, ArticleSubmission, ExtractedMetadata, AnalyticsEvent, DailyTrafficStat } from '@/types/database';
 import { createClient } from '@/lib/supabase/client';
 import { normalizeUrl, isDuplicateUrl } from './url-normalizer';
 
@@ -6,6 +6,7 @@ const LOCAL_STORAGE_KEY_PROFILES = 'sb19_hub_profiles_v6';
 const LOCAL_STORAGE_KEY_ARTICLES = 'sb19_hub_articles_v6';
 const LOCAL_STORAGE_KEY_SUBMISSIONS = 'sb19_hub_submissions_v6';
 const LOCAL_STORAGE_KEY_ANALYTICS = 'sb19_hub_analytics_events_v6';
+const LOCAL_STORAGE_KEY_DAILY_TRAFFIC = 'sb19_hub_daily_traffic_v6';
 
 // 1. PROFILES
 export function getStoredProfiles(): Profile[] {
@@ -343,6 +344,41 @@ export async function fetchAnalyticsEventsFromSupabase(profileId: string): Promi
   return getStoredAnalyticsEvents().filter(e => e.profile_id === profileId);
 }
 
+export function getStoredDailyTrafficStats(): DailyTrafficStat[] {
+  if (typeof window === 'undefined') return [];
+  try {
+    const raw = localStorage.getItem(LOCAL_STORAGE_KEY_DAILY_TRAFFIC);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+
+export function saveDailyTrafficStats(stats: DailyTrafficStat[]) {
+  if (typeof window !== 'undefined') {
+    localStorage.setItem(LOCAL_STORAGE_KEY_DAILY_TRAFFIC, JSON.stringify(stats));
+  }
+}
+
+export async function fetchDailyTrafficStatsFromSupabase(profileId: string): Promise<DailyTrafficStat[]> {
+  try {
+    const supabase = createClient();
+    const { data, error } = await supabase
+      .from('daily_traffic_stats')
+      .select('*')
+      .eq('profile_id', profileId)
+      .order('date', { ascending: false });
+
+    if (!error && data) {
+      saveDailyTrafficStats(data as DailyTrafficStat[]);
+      return data as DailyTrafficStat[];
+    }
+  } catch {
+    // Ignore
+  }
+  return getStoredDailyTrafficStats().filter(s => s.profile_id === profileId);
+}
+
 export async function recordProfileView(profileId: string) {
   if (typeof window === 'undefined' || !profileId) return;
 
@@ -371,6 +407,7 @@ export async function recordProfileView(profileId: string) {
     saveProfiles(profiles);
   }
 
+  const todayStr = new Date().toISOString().split('T')[0];
   const nowIso = new Date().toISOString();
   const newEvent: AnalyticsEvent = {
     id: generateUUID(),
@@ -396,6 +433,12 @@ export async function recordProfileView(profileId: string) {
         country_breakdown: countryMap,
       }).eq('id', profileId),
       supabase.from('analytics_events').insert(newEvent),
+      supabase.rpc('increment_daily_profile_view', {
+        p_profile_id: profileId,
+        p_date: todayStr,
+        p_device: device,
+        p_country: country,
+      }),
     ]);
   } catch {
     // Ignore
@@ -433,6 +476,7 @@ export async function recordArticleClick(articleId: string) {
   }
 
   if (targetProfileId) {
+    const todayStr = new Date().toISOString().split('T')[0];
     const nowIso = new Date().toISOString();
     const newEvent: AnalyticsEvent = {
       id: generateUUID(),
@@ -458,6 +502,12 @@ export async function recordArticleClick(articleId: string) {
           country_breakdown: countryMap,
         }).eq('id', articleId),
         supabase.from('analytics_events').insert(newEvent),
+        supabase.rpc('increment_daily_article_click', {
+          p_profile_id: targetProfileId,
+          p_date: todayStr,
+          p_device: device,
+          p_country: country,
+        }),
       ]);
     } catch {
       // Ignore

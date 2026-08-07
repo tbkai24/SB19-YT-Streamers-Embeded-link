@@ -2,8 +2,8 @@
 
 import React, { useState, useEffect } from 'react';
 import { useAdminWorkspace } from '../layout';
-import { getStoredProfiles, saveProfiles, saveProfileToSupabase, fetchAnalyticsEventsFromSupabase } from '@/lib/data-store';
-import { AnalyticsEvent } from '@/types/database';
+import { getStoredProfiles, saveProfiles, saveProfileToSupabase, fetchAnalyticsEventsFromSupabase, fetchDailyTrafficStatsFromSupabase } from '@/lib/data-store';
+import { AnalyticsEvent, DailyTrafficStat } from '@/types/database';
 import { getCountryFlagEmoji, COUNTRY_NAMES } from '@/lib/device-detector';
 import { BarChart3, Search, Eye, MousePointerClick, ShieldCheck, Check, Save, Smartphone, Laptop, Tablet, Globe, Calendar, ChevronDown } from 'lucide-react';
 
@@ -14,19 +14,24 @@ export default function AnalyticsAdminPage() {
   const [seoDescription, setSeoDescription] = useState('');
   const [savedSuccess, setSavedSuccess] = useState(false);
 
-  // Date Range Filter state: 1 Day, 1 Week, 1 Month, Custom
-  const [timeRange, setTimeRange] = useState<'1d' | '1w' | '1m' | 'custom'>('1m');
+  // Date Range Filter state: 1 Day, 1 Week, 1 Month, All Time, Custom
+  const [timeRange, setTimeRange] = useState<'1d' | '1w' | '1m' | 'all' | 'custom'>('1m');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [events, setEvents] = useState<AnalyticsEvent[]>([]);
+  const [dailyStats, setDailyStats] = useState<DailyTrafficStat[]>([]);
 
   useEffect(() => {
     if (activeProfile) {
       setSeoTitle(activeProfile.seo_title || `${activeProfile.title} - SB19 YouTube Streamers`);
       setSeoDescription(activeProfile.seo_description || activeProfile.description || '');
 
-      fetchAnalyticsEventsFromSupabase(activeProfile.id).then(evs => {
+      Promise.all([
+        fetchAnalyticsEventsFromSupabase(activeProfile.id),
+        fetchDailyTrafficStatsFromSupabase(activeProfile.id),
+      ]).then(([evs, stats]) => {
         setEvents(evs);
+        setDailyStats(stats);
       });
     }
   }, [activeProfile]);
@@ -49,6 +54,8 @@ export default function AnalyticsAdminPage() {
       return evTime >= now - 7 * 24 * 60 * 60 * 1000;
     } else if (timeRange === '1m') {
       return evTime >= now - 30 * 24 * 60 * 60 * 1000;
+    } else if (timeRange === 'all') {
+      return true;
     } else if (timeRange === 'custom') {
       if (!startDate && !endDate) return true;
       const startMs = startDate ? new Date(startDate).getTime() : 0;
@@ -58,7 +65,7 @@ export default function AnalyticsAdminPage() {
     return true;
   });
 
-  // Calculate real metrics from filtered events or fallback to total profile metrics if legacy
+  // Calculate real metrics from filtered events or daily rollup stats or fallback to total profile metrics
   const hasEventData = events.length > 0;
 
   const displayViews = hasEventData
@@ -143,6 +150,7 @@ export default function AnalyticsAdminPage() {
               <option value="1d">1 Day (Last 24h)</option>
               <option value="1w">1 Week (Last 7d)</option>
               <option value="1m">1 Month (Last 30d)</option>
+              <option value="all">All Time (Lifetime Total 🔥)</option>
               <option value="custom">Custom Range...</option>
             </select>
             <ChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-3 pointer-events-none" />

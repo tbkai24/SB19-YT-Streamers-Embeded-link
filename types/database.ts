@@ -77,6 +77,18 @@ export interface AnalyticsEvent {
   created_at: string;
 }
 
+export interface DailyTrafficStat {
+  id: string;
+  profile_id: string;
+  date: string;
+  views_count: number;
+  clicks_count: number;
+  device_breakdown?: Record<string, number>;
+  country_breakdown?: Record<string, number>;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface Admin {
   id: string;
   email: string;
