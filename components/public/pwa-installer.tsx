@@ -172,7 +172,7 @@ export function PwaInstaller() {
         const reg = await navigator.serviceWorker.ready;
         let sub = await reg.pushManager.getSubscription();
 
-        const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || 'BDyUoM5OfcS_tNX4oRESHQhpvRAJJ8xhOiFYaAm16o4EJ7YE5yV1d7_2lftzyegd8Bq7kLzeN4p7AGcc8k2uSR4';
+        const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || 'BFCMfc_zll7t8hZAdbPxvcMAb_G9e7nOcAWIMPWjobBUGJdFVHd3-4qWURL9Td8MUDJaRnQlZMc8qfg_gJGeMOM';
 
         // Unsubscribe old/stale subscription to guarantee fresh VAPID key pairing
         if (sub) {
@@ -222,22 +222,6 @@ export function PwaInstaller() {
 
           setNotifSuccess(true);
           setTimeout(() => setNotifSuccess(false), 5000);
-
-          // Show immediate welcome OS notification to verify phone receives it
-          try {
-            const logoUrl = window.location.origin + '/assets/ytslogo.jpg';
-            const options: NotificationOptions & { renotify?: boolean } = {
-              body: 'SB19 Streaming Hub push notifications are active! 🎉',
-              icon: logoUrl,
-              badge: logoUrl,
-              tag: 'sb19-welcome-' + Date.now(),
-              renotify: true,
-              data: { url: '/' },
-            };
-            await reg.showNotification('SB19 Streaming Hub', options);
-          } catch {
-            // Ignore
-          }
         }
       }
     } catch (err: any) {

@@ -1,14 +1,22 @@
 import { NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/client';
+import { createClient } from '@supabase/supabase-js';
 import webpush from 'web-push';
 
 const BRAND_LOGO_URL = '/assets/ytslogo.jpg';
 
-const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || 'BDyUoM5OfcS_tNX4oRESHQhpvRAJJ8xhOiFYaAm16o4EJ7YE5yV1d7_2lftzyegd8Bq7kLzeN4p7AGcc8k2uSR4';
-const vapidPrivateKey = process.env.VAPID_PRIVATE_KEY || 'qimf4jwRk4IcAfK0-KbuyYzm_ixhrg4aqJDwwZfg9Hc';
+const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || 'BFCMfc_zll7t8hZAdbPxvcMAb_G9e7nOcAWIMPWjobBUGJdFVHd3-4qWURL9Td8MUDJaRnQlZMc8qfg_gJGeMOM';
+const vapidPrivateKey = process.env.VAPID_PRIVATE_KEY || 'VRj6UGk9wIDs5Eoy7vi2ZvskpTyPQFjqh0TGzP0dgIE';
 const vapidSubject = process.env.VAPID_SUBJECT || 'mailto:admin@sb19streaminghub.com';
 
 webpush.setVapidDetails(vapidSubject, vapidPublicKey, vapidPrivateKey);
+
+function getSupabaseServerClient() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+  return createClient(url, key, {
+    auth: { persistSession: false },
+  });
+}
 
 export async function POST(request: Request) {
   try {
@@ -19,7 +27,7 @@ export async function POST(request: Request) {
     }
 
     const targetUrl = url || '/';
-    const supabase = createClient();
+    const supabase = getSupabaseServerClient();
 
     // 1. Save Notification record to database
     const notificationPayload = {
@@ -79,7 +87,6 @@ export async function POST(request: Request) {
             await webpush.sendNotification(subscription, pushPayload);
             deliveredCount++;
           } catch (err: any) {
-            // Auto-clean expired/unsubscribed endpoints (404 Not Found / 410 Gone)
             if (err.statusCode === 404 || err.statusCode === 410) {
               expiredEndpoints.push(sub.endpoint);
             }

@@ -1,9 +1,17 @@
 import { NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/client';
+import { createClient } from '@supabase/supabase-js';
+
+function getSupabaseServerClient() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+  return createClient(url, key, {
+    auth: { persistSession: false },
+  });
+}
 
 export async function GET() {
   try {
-    const supabase = createClient();
+    const supabase = getSupabaseServerClient();
 
     // 1. Delete rows where endpoint doesn't start with https://
     const { data: invalidEndpoints, error: err1 } = await supabase
