@@ -24,14 +24,32 @@ export async function detectCountryCode(): Promise<string> {
     const cached = sessionStorage.getItem(COUNTRY_CACHE_KEY);
     if (cached) return cached;
 
-    // Use fast free IP geolocation API
-    const res = await fetch('https://ipapi.co/json/', { signal: AbortSignal.timeout(1500) });
-    if (res.ok) {
-      const data = await res.json();
-      if (data.country_code) {
-        sessionStorage.setItem(COUNTRY_CACHE_KEY, data.country_code);
-        return data.country_code;
+    // Provider 1: ipwho.is (Fast, reliable, free CORS)
+    try {
+      const res1 = await fetch('https://ipwho.is/', { signal: AbortSignal.timeout(2000) });
+      if (res1.ok) {
+        const data1 = await res1.json();
+        if (data1.country_code) {
+          sessionStorage.setItem(COUNTRY_CACHE_KEY, data1.country_code);
+          return data1.country_code;
+        }
       }
+    } catch {
+      // Fallback to provider 2
+    }
+
+    // Provider 2: ipapi.co
+    try {
+      const res2 = await fetch('https://ipapi.co/json/', { signal: AbortSignal.timeout(2000) });
+      if (res2.ok) {
+        const data2 = await res2.json();
+        if (data2.country_code) {
+          sessionStorage.setItem(COUNTRY_CACHE_KEY, data2.country_code);
+          return data2.country_code;
+        }
+      }
+    } catch {
+      // Fallback
     }
   } catch {
     // Ignore timeout/error, fallback to PH

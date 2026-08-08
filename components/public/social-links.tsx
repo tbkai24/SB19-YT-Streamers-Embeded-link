@@ -32,6 +32,52 @@ const XTwitterIcon = ({ className }: { className?: string }) => (
   </svg>
 );
 
+const TikTokIcon = ({ className }: { className?: string }) => (
+  <svg className={className} fill="currentColor" viewBox="0 0 24 24">
+    <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64c.29 0 .58.04.86.12V9.31a6.34 6.34 0 0 0-1-.08 6.34 6.34 0 1 0 6.34 6.34V9.07a8.16 8.16 0 0 0 4.91 1.63V7.25a4.86 4.86 0 0 1-1-.56z"/>
+  </svg>
+);
+
+const SpotifyIcon = ({ className }: { className?: string }) => (
+  <svg className={className} fill="currentColor" viewBox="0 0 24 24">
+    <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.899 4.62-1.02 8.52-.6 11.64 1.32.36.18.48.66.301 1.019zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141 C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.18-1.2-.18-1.38-.72-.18-.6.18-1.2.72-1.38 4.26-1.26 11.28-1.02 15.72 1.62.54.3.72.96.42 1.5-.3.54-.96.72-1.5.42z"/>
+  </svg>
+);
+
+const AppleMusicIcon = ({ className }: { className?: string }) => (
+  <svg className={className} fill="currentColor" viewBox="0 0 24 24">
+    <path d="M12.7 0a.7.7 0 0 0-.7.7v13.626a3.86 3.86 0 1 0 1.4 3.014V5.72l7.6 1.727v7.505a3.86 3.86 0 1 0 1.4 3.014V6.756a.7.7 0 0 0-.547-.683L13.253.053A.7.7 0 0 0 12.7 0zm-3.86 15.94a2.46 2.46 0 1 1-2.46 2.46 2.46 2.46 0 0 1 2.46-2.46zm9 1.727a2.46 2.46 0 1 1-2.46-2.46 2.46 2.46 0 0 1 2.46 2.46z"/>
+  </svg>
+);
+
+const ThreadsIcon = ({ className }: { className?: string }) => (
+  <svg className={className} fill="currentColor" viewBox="0 0 24 24">
+    <path d="M12.186 24c-6.19 0-10.743-4.554-10.743-11.455C1.443 5.455 6.343.5 12.5.5c6.248 0 10.957 4.707 10.957 11.758 0 7.42-5.105 11.742-11.127 11.742-2.828 0-5.326-1.077-6.907-2.981l1.52-1.55c1.233 1.492 3.256 2.33 5.387 2.33 4.542 0 8.358-3.08 8.358-9.541 0-5.46-3.488-9.056-8.188-9.056-4.786 0-8.324 3.73-8.324 9.5 0 5.46 3.4 8.784 8.1 8.784 1.83 0 3.32-.472 4.417-1.4.953-.807 1.494-1.922 1.494-3.076 0-1.848-1.34-2.846-3.69-2.846h-.37c-1.42 0-2.316.71-2.316 1.8 0 .977.72 1.636 1.88 1.636.85 0 1.54-.31 2.05-.9l.06-.07.03.07c.07.19.1.41.1.63 0 .76-.38 1.48-1.04 1.98-.82.63-2.02.93-3.45.93-3.32 0-5.75-2.22-5.75-5.91 0-3.9 2.5-6.52 6.07-6.52 3.65 0 5.94 2.45 5.94 6.27 0 1.95-.73 3.65-2.06 4.79-1.45 1.25-3.47 1.88-5.83 1.88z"/>
+  </svg>
+);
+
+function getPlatformIcon(platform: string) {
+  const p = platform.toLowerCase();
+  if (p.includes('youtube') || p.includes('yt')) return YoutubeIcon;
+  if (p.includes('facebook') || p.includes('fb')) return FacebookIcon;
+  if (p.includes('instagram') || p.includes('ig')) return InstagramIcon;
+  if (p.includes('twitter') || p.includes('x')) return XTwitterIcon;
+  if (p.includes('tiktok')) return TikTokIcon;
+  if (p.includes('spotify')) return SpotifyIcon;
+  if (p.includes('apple') || p.includes('music')) return AppleMusicIcon;
+  if (p.includes('threads')) return ThreadsIcon;
+  return Globe;
+}
+
+const formatDirectUrl = (url: string) => {
+  if (!url) return '#';
+  const trimmed = url.trim();
+  if (!trimmed.startsWith('http://') && !trimmed.startsWith('https://')) {
+    return `https://${trimmed}`;
+  }
+  return trimmed;
+};
+
 export function SocialLinks({ profile }: SocialLinksProps) {
   const getCleanYoutubeUrl = (url: string | null) => {
     if (!url) return null;
@@ -47,14 +93,14 @@ export function SocialLinks({ profile }: SocialLinksProps) {
     { key: 'facebook_url', label: 'Facebook', url: profile.facebook_url, icon: FacebookIcon },
     { key: 'instagram_url', label: 'Instagram', url: profile.instagram_url, icon: InstagramIcon },
     { key: 'x_url', label: 'X', url: profile.x_url, icon: XTwitterIcon },
-    { key: 'threads_url', label: 'Threads', url: profile.threads_url, icon: MessageSquare },
+    { key: 'threads_url', label: 'Threads', url: profile.threads_url, icon: ThreadsIcon },
   ].filter(link => Boolean(link.url));
 
   const customLinks = (profile.custom_social_links || []).map((c, idx) => ({
     key: `custom-${idx}`,
     label: c.platform || 'Social Link',
     url: c.url,
-    icon: Globe,
+    icon: getPlatformIcon(c.platform),
   }));
 
   const links = [...standardLinks, ...customLinks];
@@ -68,7 +114,7 @@ export function SocialLinks({ profile }: SocialLinksProps) {
         return (
           <a
             key={link.key}
-            href={link.url!}
+            href={formatDirectUrl(link.url!)}
             target="_blank"
             rel="noopener noreferrer"
             title={link.label}
