@@ -370,9 +370,9 @@ export function PwaInstaller() {
                       🔔
                     </div>
                     <div>
-                      <h4 className="text-xs font-bold text-white">Enable Push Notifications</h4>
-                      <p className="text-xs text-slate-400 font-medium mt-0.5">
-                        Tap <strong>Enable Notifications</strong> below and select <strong>Allow</strong> to receive instant release alerts & streaming reminders.
+                      <h4 className="text-xs font-bold text-white">Enable Push Notifications in App & Android Settings</h4>
+                      <p className="text-xs text-slate-400 font-medium mt-0.5 leading-relaxed">
+                        Tap <strong>Enable Notifications</strong> below and select <strong>Allow</strong>. If your phone shows notifications off in App Info settings, go to <strong>Phone Settings &gt; SB19 Streaming Hub &gt; Notifications &gt; Turn ON</strong>.
                       </p>
                     </div>
                   </div>
