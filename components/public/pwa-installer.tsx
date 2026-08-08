@@ -245,9 +245,9 @@ export function PwaInstaller() {
                           2
                         </div>
                         <div>
-                          <h4 className="text-xs font-bold text-white">Tap &apos;Install app&apos; or &apos;Add to Home screen&apos;</h4>
+                          <h4 className="text-xs font-bold text-white">Tap &apos;Install and create shortcut&apos;, &apos;Install app&apos;, or &apos;Add to Home screen&apos;</h4>
                           <p className="text-xs text-slate-400 font-medium mt-0.5">
-                            Select <strong>Install app</strong> or <strong>Add to Home screen</strong>. SB19 Hub will be installed as a native app on your phone!
+                            Select <strong>Install and create shortcut</strong>, <strong>Install app</strong>, or <strong>Add to Home screen</strong>. SB19 Hub will be saved as a native app on your phone!
                           </p>
                         </div>
                       </div>
