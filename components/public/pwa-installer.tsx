@@ -174,35 +174,37 @@ export function PwaInstaller() {
 
         const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
 
-        // Unsubscribe old/stale subscription to guarantee fresh VAPID key pairing
-        if (sub) {
-          try {
-            await sub.unsubscribe();
-            sub = null;
-          } catch {
-            // Ignore
-          }
-        }
-
         if (!sub && vapidPublicKey) {
-          try {
-            const convertedKey = (base64String: string) => {
-              const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
-              const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
-              const rawData = window.atob(base64);
-              const outputArray = new Uint8Array(rawData.length);
-              for (let i = 0; i < rawData.length; ++i) {
-                outputArray[i] = rawData.charCodeAt(i);
-              }
-              return outputArray;
-            };
+          const convertedKey = (base64String: string) => {
+            const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
+            const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+            const rawData = window.atob(base64);
+            const outputArray = new Uint8Array(rawData.length);
+            for (let i = 0; i < rawData.length; ++i) {
+              outputArray[i] = rawData.charCodeAt(i);
+            }
+            return outputArray;
+          };
 
+          try {
             sub = await reg.pushManager.subscribe({
               userVisibleOnly: true,
               applicationServerKey: convertedKey(vapidPublicKey),
             });
           } catch (subErr: any) {
-            console.log('Push subscribe error:', subErr);
+            console.log('Push subscribe error, attempting key refresh:', subErr);
+            try {
+              const oldSub = await reg.pushManager.getSubscription();
+              if (oldSub) {
+                await oldSub.unsubscribe();
+                sub = await reg.pushManager.subscribe({
+                  userVisibleOnly: true,
+                  applicationServerKey: convertedKey(vapidPublicKey),
+                });
+              }
+            } catch {
+              // Ignore
+            }
           }
         }
 
