@@ -4,17 +4,30 @@ import webpush from 'web-push';
 
 const BRAND_LOGO_URL = '/assets/ytslogo.jpg';
 
-const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || 'BB7y1qu9lKF76iuobKPsdfZHy4MuNzHoP5jMqyNoMb0Jlbp883isgzLUdRKQWDHXoD4lqtfMaG0TAnwbF4IZUWU';
-const vapidPrivateKey = process.env.VAPID_PRIVATE_KEY || '';
+// ✅ Use environment variables ONLY - no hardcoded fallbacks
+const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
+const vapidPrivateKey = process.env.VAPID_PRIVATE_KEY;
 const vapidSubject = process.env.VAPID_SUBJECT || 'mailto:admin@sb19streaminghub.com';
 
-if (vapidPublicKey && vapidPrivateKey) {
-  webpush.setVapidDetails(vapidSubject, vapidPublicKey, vapidPrivateKey);
+// ✅ Validate keys before setting
+if (!vapidPublicKey || !vapidPrivateKey) {
+  console.error('❌ VAPID keys missing! Check environment variables.');
+} else {
+  try {
+    webpush.setVapidDetails(vapidSubject, vapidPublicKey, vapidPrivateKey);
+  } catch (e: any) {
+    console.error('VAPID setup error:', e.message);
+  }
 }
 
 function getSupabaseServerClient() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+  
+  if (!url || !key) {
+    throw new Error('Supabase URL or Service Role Key missing');
+  }
+  
   return createClient(url, key, {
     auth: { persistSession: false },
   });
@@ -26,6 +39,11 @@ export async function POST(request: Request) {
 
     if (!title || !message) {
       return NextResponse.json({ error: 'Title and message are required' }, { status: 400 });
+    }
+
+    // ✅ Check if VAPID is configured
+    if (!vapidPublicKey || !vapidPrivateKey) {
+      return NextResponse.json({ error: 'Push service not configured' }, { status: 500 });
     }
 
     const targetUrl = url || '/';
@@ -61,7 +79,7 @@ export async function POST(request: Request) {
     try {
       const { data: subs } = await supabase
         .from('push_subscriptions')
-        .select('endpoint, keys')
+        .select('*')
         .like('endpoint', 'https://%')
         .not('keys', 'is', null);
 
@@ -78,6 +96,7 @@ export async function POST(request: Request) {
           if (!sub.endpoint || !sub.keys || !sub.keys.p256dh || !sub.keys.auth) {
             return;
           }
+          
           const subscription = {
             endpoint: sub.endpoint,
             keys: {
@@ -85,10 +104,12 @@ export async function POST(request: Request) {
               auth: sub.keys.auth,
             },
           };
+          
           try {
             await webpush.sendNotification(subscription, pushPayload);
             deliveredCount++;
           } catch (err: any) {
+            console.error('Push failed:', err.statusCode, err.message);
             if (err.statusCode === 404 || err.statusCode === 410) {
               expiredEndpoints.push(sub.endpoint);
             }
@@ -97,8 +118,8 @@ export async function POST(request: Request) {
 
         await Promise.allSettled(pushPromises);
       }
-    } catch {
-      // Ignore
+    } catch (err) {
+      console.error('Subscription fetch error:', err);
     }
 
     // 3. Clean up expired subscriptions from Supabase
@@ -116,11 +137,12 @@ export async function POST(request: Request) {
     return NextResponse.json({
       success: true,
       notification: notificationRecord || notificationPayload,
-      sentToSubscribers: deliveredCount || 1,
+      sentToSubscribers: deliveredCount,
       expiredRemoved: expiredEndpoints.length,
       brandLogo: BRAND_LOGO_URL,
     });
   } catch (error: any) {
+    console.error('Send push error:', error);
     return NextResponse.json({ error: error.message || 'Failed to send notification' }, { status: 500 });
   }
 }

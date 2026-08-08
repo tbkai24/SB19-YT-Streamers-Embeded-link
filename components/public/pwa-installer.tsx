@@ -172,7 +172,7 @@ export function PwaInstaller() {
         const reg = await navigator.serviceWorker.ready;
         let sub = await reg.pushManager.getSubscription();
 
-        const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || 'BB7y1qu9lKF76iuobKPsdfZHy4MuNzHoP5jMqyNoMb0Jlbp883isgzLUdRKQWDHXoD4lqtfMaG0TAnwbF4IZUWU';
+        const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
 
         // Unsubscribe old/stale subscription to guarantee fresh VAPID key pairing
         if (sub) {
