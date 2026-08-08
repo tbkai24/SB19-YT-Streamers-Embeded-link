@@ -131,6 +131,7 @@ export async function saveProfileToSupabase(profile: Partial<Profile>): Promise<
     if (data) {
       const resultData = {
         ...(data as Profile),
+        display_order: (data as any).display_order ?? profile.display_order ?? null,
         custom_social_links: data.custom_social_links ?? profile.custom_social_links ?? null,
       };
       const all = getStoredProfiles();
