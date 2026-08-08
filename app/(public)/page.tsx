@@ -28,7 +28,9 @@ export default function PublicHomePage() {
       const dbProfiles = await fetchProfilesFromSupabase();
       const dbArticles = await fetchArticlesFromSupabase();
 
-      const publishedProfs = dbProfiles.filter(p => p.status === 'published');
+      const publishedProfs = dbProfiles
+        .filter(p => p.status === 'published')
+        .sort((a, b) => (a.display_order ?? 999) - (b.display_order ?? 999));
       const publishedArts = dbArticles.filter(a => a.status === 'published');
 
       setProfiles(publishedProfs);

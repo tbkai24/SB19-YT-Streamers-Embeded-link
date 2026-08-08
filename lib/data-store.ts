@@ -66,7 +66,7 @@ export async function fetchProfilesFromSupabase(): Promise<Profile[]> {
         return {
           ...sp,
           youtube_url: cleanYt,
-          display_order: lp?.display_order ?? sp.display_order ?? idx + 1,
+          display_order: sp.display_order ?? lp?.display_order ?? idx + 1,
           custom_social_links: sp.custom_social_links ?? lp?.custom_social_links ?? null,
         };
       }).sort((a: Profile, b: Profile) => (a.display_order ?? 999) - (b.display_order ?? 999));
@@ -103,12 +103,16 @@ export async function saveProfileToSupabase(profile: Partial<Profile>): Promise<
     if (error) {
       console.warn('Supabase saveProfile notice:', error.message || error);
 
-      // Fallback if custom_social_links column is not yet migrated in Supabase SQL schema
-      if (error.message?.includes('custom_social_links') || error.code === 'PGRST204') {
-        const { custom_social_links, ...safeProfile } = profile;
+      // Fallback if custom_social_links or display_order column is not yet migrated in Supabase SQL schema
+      if (error.message?.includes('custom_social_links') || error.message?.includes('display_order') || error.code === 'PGRST204') {
+        const { custom_social_links, display_order, ...safeProfile } = profile;
         const retryRes = await supabase.from('profiles').upsert(safeProfile).select().maybeSingle();
         if (!retryRes.error && retryRes.data) {
-          const resultData = { ...retryRes.data, custom_social_links: profile.custom_social_links } as Profile;
+          const resultData = {
+            ...retryRes.data,
+            display_order: profile.display_order,
+            custom_social_links: profile.custom_social_links,
+          } as Profile;
           const current = getStoredProfiles();
           const idx = current.findIndex(p => p.id === resultData.id);
           if (idx >= 0) current[idx] = resultData;
