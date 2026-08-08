@@ -86,7 +86,7 @@ export function PwaInstaller() {
                   body: message || 'New release update available!',
                   icon: logoUrl,
                   badge: logoUrl,
-                  tag: 'sb19-push-' + Date.now(),
+                  tag: 'sb19-push-' + (title || 'hub').toLowerCase().replace(/[^a-z0-9]/g, '-'),
                   renotify: true,
                   data: { url: url || '/' },
                 };

@@ -26,11 +26,14 @@ self.addEventListener('push', (event) => {
   const origin = self.location.origin;
   const logoUrl = origin + '/assets/ytslogo.jpg';
 
+  // Use payload tag or generate consistent tag from title to deduplicate stacked notifications
+  const notifTag = data.tag || data.id || ('sb19-notif-' + notifTitle.toLowerCase().replace(/[^a-z0-9]/g, '-'));
+
   const options = {
     body: notifMessage,
     icon: logoUrl,
     badge: logoUrl,
-    tag: 'sb19-push-' + (data.id || Date.now()),
+    tag: notifTag,
     renotify: true,
     data: {
       url: data.url || '/',
