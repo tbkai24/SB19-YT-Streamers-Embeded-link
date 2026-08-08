@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/client';
 
-const BRAND_LOGO_URL = 'https://res.cloudinary.com/wkmmjpzb/image/upload/f_auto,q_auto/JlaG7Bz8_400x400_pvb6mo.jpg';
+const BRAND_LOGO_URL = '/assets/ytslogo.jpg';
 
 export async function POST(request: Request) {
   try {

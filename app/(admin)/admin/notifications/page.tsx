@@ -77,7 +77,7 @@ export default function NotificationsAdminPage() {
 
       if (perm !== 'granted') return;
 
-      const logoUrl = 'https://res.cloudinary.com/wkmmjpzb/image/upload/f_auto,q_auto/JlaG7Bz8_400x400_pvb6mo.jpg';
+      const logoUrl = '/assets/ytslogo.jpg';
       const options: NotificationOptions = {
         body: notifMessage,
         icon: logoUrl,

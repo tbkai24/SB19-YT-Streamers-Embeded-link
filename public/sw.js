@@ -1,7 +1,7 @@
 // SB19 Stream Hub Service Worker for PWA & Push Notifications
 
 const CACHE_NAME = 'sb19-hub-cache-v1';
-const BRAND_LOGO_URL = 'https://res.cloudinary.com/wkmmjpzb/image/upload/f_auto,q_auto/JlaG7Bz8_400x400_pvb6mo.jpg';
+const BRAND_LOGO_URL = '/assets/ytslogo.jpg';
 
 self.addEventListener('install', (event) => {
   self.skipWaiting();

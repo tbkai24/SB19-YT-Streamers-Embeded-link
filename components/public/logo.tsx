@@ -11,7 +11,7 @@ interface LogoProps {
 export function BrandLogo({ size = 'md', showText = true }: LogoProps) {
   const [imgError, setImgError] = useState(false);
 
-  const cloudinaryLogoUrl = 'https://res.cloudinary.com/wkmmjpzb/image/upload/f_auto,q_auto/JlaG7Bz8_400x400_pvb6mo.jpg';
+  const localLogoUrl = '/assets/ytslogo.jpg';
 
   const iconSizes = {
     sm: 'w-7 h-7 text-xs',
@@ -24,7 +24,7 @@ export function BrandLogo({ size = 'md', showText = true }: LogoProps) {
       <div className="relative shrink-0">
         {!imgError ? (
           <img
-            src={cloudinaryLogoUrl}
+            src={localLogoUrl}
             alt="SB19 YouTube Streamers"
             onError={() => setImgError(true)}
             className={`${iconSizes[size]} object-cover rounded-xl drop-shadow group-hover:scale-105 transition-transform`}
