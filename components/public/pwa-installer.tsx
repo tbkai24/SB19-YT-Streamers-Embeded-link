@@ -13,6 +13,17 @@ export function PwaInstaller() {
   const [activeTab, setActiveTab] = useState<'android' | 'ios' | 'desktop'>('android');
 
   useEffect(() => {
+    // Check if running inside installed standalone app
+    if (typeof window !== 'undefined') {
+      const isStandalone =
+        window.matchMedia('(display-mode: standalone)').matches ||
+        (navigator as any).standalone === true;
+      if (isStandalone) {
+        setShowInstallBanner(false);
+        return;
+      }
+    }
+
     // 1. Check Notification permission status
     if (typeof window !== 'undefined' && 'Notification' in window) {
       setNotifPermission(Notification.permission);
@@ -25,22 +36,46 @@ export function PwaInstaller() {
         .catch((err) => console.log('SW Registration failed:', err));
     }
 
-    // 3. Listen for PWA Install Prompt
+    const isDismissed = localStorage.getItem('sb19_pwa_dismissed');
+    const isInstalled = localStorage.getItem('sb19_pwa_installed');
+
+    // Initially pop up banner if not dismissed & not installed
+    if (!isDismissed && !isInstalled) {
+      setShowInstallBanner(true);
+    }
+
+    // 3. Listen for PWA Install Prompt & App Installed
     const handleBeforeInstallPrompt = (e: Event) => {
       e.preventDefault();
       setDeferredPrompt(e);
-      const isDismissed = localStorage.getItem('sb19_pwa_dismissed');
-      if (!isDismissed) {
+      if (!isDismissed && !isInstalled) {
         setShowInstallBanner(true);
       }
     };
 
+    const handleAppInstalled = () => {
+      setShowInstallBanner(false);
+      localStorage.setItem('sb19_pwa_installed', 'true');
+    };
+
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    window.addEventListener('appinstalled', handleAppInstalled);
 
     return () => {
       window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+      window.removeEventListener('appinstalled', handleAppInstalled);
     };
   }, []);
+
+  // Auto-close banner after 4 seconds so it does not stay annoying
+  useEffect(() => {
+    if (showInstallBanner) {
+      const timer = setTimeout(() => {
+        setShowInstallBanner(false);
+      }, 4000);
+      return () => clearTimeout(timer);
+    }
+  }, [showInstallBanner]);
 
   const handleInstallClick = async () => {
     if (deferredPrompt) {
@@ -49,6 +84,7 @@ export function PwaInstaller() {
         const { outcome } = await deferredPrompt.userChoice;
         if (outcome === 'accepted') {
           setShowInstallBanner(false);
+          localStorage.setItem('sb19_pwa_installed', 'true');
         }
         setDeferredPrompt(null);
         return;
@@ -102,7 +138,8 @@ export function PwaInstaller() {
   return (
     <>
       {/* Floating PWA Install & Push Notification Banner */}
-      <div className="fixed bottom-4 left-4 right-4 sm:left-auto sm:right-6 sm:max-w-md z-50 animate-in fade-in slide-in-from-bottom-4 duration-300">
+      {showInstallBanner && (
+        <div className="fixed bottom-4 left-4 right-4 sm:left-auto sm:right-6 sm:max-w-md z-50 animate-in fade-in slide-in-from-bottom-4 duration-300">
         <div className="p-4 rounded-2xl bg-slate-900/95 backdrop-blur-md text-white border border-slate-700/60 shadow-2xl relative overflow-hidden flex flex-col gap-3">
           {/* Subtle Red Accent Glow */}
           <div className="absolute -top-12 -right-12 w-28 h-28 bg-rose-600/30 rounded-full blur-2xl pointer-events-none" />
@@ -157,6 +194,7 @@ export function PwaInstaller() {
           </button>
         </div>
       </div>
+      )}
 
       {/* Quick Installation Tutorial Modal */}
       {showTutorialModal && (
