@@ -13,22 +13,35 @@ export function PwaInstaller() {
   const [activeTab, setActiveTab] = useState<'android' | 'ios' | 'desktop'>('android');
 
   useEffect(() => {
-    // Check if running inside installed standalone app
+    let isStandalone = false;
+
+    // 1. Check if running inside installed standalone app or detected via getInstalledRelatedApps
     if (typeof window !== 'undefined') {
-      const isStandalone =
+      isStandalone =
         window.matchMedia('(display-mode: standalone)').matches ||
         (navigator as any).standalone === true;
-      if (isStandalone) {
+      const isInstalledStorage = localStorage.getItem('sb19_pwa_installed') === 'true';
+
+      if (isStandalone || isInstalledStorage) {
         setShowInstallBanner(false);
+      }
+
+      if ('getInstalledRelatedApps' in navigator) {
+        (navigator as any).getInstalledRelatedApps().then((relatedApps: any[]) => {
+          if (relatedApps && relatedApps.length > 0) {
+            setShowInstallBanner(false);
+            localStorage.setItem('sb19_pwa_installed', 'true');
+          }
+        }).catch(() => {});
       }
     }
 
-    // 1. Check Notification permission status
+    // 2. Check Notification permission status
     if (typeof window !== 'undefined' && 'Notification' in window) {
       setNotifPermission(Notification.permission);
     }
 
-    // 2. Register Service Worker & Auto Sync Subscription with Database
+    // 3. Register Service Worker & Auto Sync Subscription with Database
     if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
       navigator.serviceWorker
         .register('/sw.js')
@@ -40,25 +53,21 @@ export function PwaInstaller() {
         .catch((err) => console.log('SW Registration failed:', err));
     }
 
-    // Clear old permanent dismissal so testers/users receive the prompt
-    localStorage.removeItem('sb19_pwa_dismissed');
-
     const isSessionDismissed = sessionStorage.getItem('sb19_pwa_session_dismissed');
-    const isInstalled = localStorage.getItem('sb19_pwa_installed');
+    const isInstalled = localStorage.getItem('sb19_pwa_installed') === 'true';
 
-    // Initially pop up banner if not dismissed in current session & not installed
-    if (!isSessionDismissed && !isInstalled) {
+    // Only pop up banner if NOT installed and NOT dismissed in session
+    if (!isSessionDismissed && !isInstalled && !isStandalone) {
       setShowInstallBanner(true);
     }
 
-    // 3. Listen for PWA Install Prompt & App Installed
+    // 4. Listen for PWA Install Prompt & App Installed
     const handleBeforeInstallPrompt = (e: Event) => {
       e.preventDefault();
       setDeferredPrompt(e);
-      // If browser fires beforeinstallprompt again, user uninstalled or does not have app installed
-      localStorage.removeItem('sb19_pwa_installed');
 
-      if (!isSessionDismissed) {
+      const currentlyInstalled = localStorage.getItem('sb19_pwa_installed') === 'true';
+      if (!isSessionDismissed && !currentlyInstalled && !isStandalone) {
         setShowInstallBanner(true);
       }
     };
@@ -70,45 +79,12 @@ export function PwaInstaller() {
       handleEnableNotifications();
     };
 
-    // 4. Realtime Broadcast Push Listener for mobile devices
-    let pushChannel: BroadcastChannel | null = null;
-    if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
-      try {
-        pushChannel = new BroadcastChannel('sb19_push_channel');
-        pushChannel.onmessage = async (event) => {
-          if (event.data && event.data.type === 'TRIGGER_PUSH') {
-            const { title, message, url } = event.data;
-            if (Notification.permission === 'granted' && 'serviceWorker' in navigator) {
-              try {
-                const reg = await navigator.serviceWorker.ready;
-                const logoUrl = window.location.origin + '/assets/ytslogo.jpg';
-                const options: NotificationOptions & { renotify?: boolean } = {
-                  body: message || 'New release update available!',
-                  icon: logoUrl,
-                  badge: logoUrl,
-                  tag: 'sb19-push-' + (title || 'hub').toLowerCase().replace(/[^a-z0-9]/g, '-'),
-                  renotify: true,
-                  data: { url: url || '/' },
-                };
-                await reg.showNotification(title || 'SB19 Streaming Hub', options);
-              } catch {
-                // Ignore
-              }
-            }
-          }
-        };
-      } catch {
-        // Ignore
-      }
-    }
-
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
     window.addEventListener('appinstalled', handleAppInstalled);
 
     return () => {
       window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
       window.removeEventListener('appinstalled', handleAppInstalled);
-      if (pushChannel) pushChannel.close();
     };
   }, []);
 

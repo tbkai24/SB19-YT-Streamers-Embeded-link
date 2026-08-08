@@ -26,15 +26,15 @@ self.addEventListener('push', (event) => {
   const origin = self.location.origin;
   const logoUrl = origin + '/assets/ytslogo.jpg';
 
-  // Use payload tag or generate consistent tag from title to deduplicate stacked notifications
-  const notifTag = data.tag || data.id || ('sb19-notif-' + notifTitle.toLowerCase().replace(/[^a-z0-9]/g, '-'));
+  // Strict single notification tag - replaces any previous notification so EXACTLY 1 banner is shown
+  const notifTag = data.id ? ('sb19-msg-' + data.id) : 'sb19-single-push-notification';
 
   const options = {
     body: notifMessage,
     icon: logoUrl,
     badge: logoUrl,
     tag: notifTag,
-    renotify: true,
+    renotify: false,
     data: {
       url: data.url || '/',
       timestamp: Date.now(),
@@ -42,32 +42,6 @@ self.addEventListener('push', (event) => {
   };
 
   event.waitUntil(self.registration.showNotification(notifTitle, options));
-});
-
-// Handle Direct Message from Client/Admin Broadcast
-self.addEventListener('message', (event) => {
-  if (event.data && (event.data.type === 'TRIGGER_PUSH' || event.data.action === 'showNotification')) {
-    const { title, message, url } = event.data;
-    const origin = self.location.origin;
-    const logoUrl = origin + '/assets/ytslogo.jpg';
-
-    const notifTitle = title || 'SB19 Streaming Hub';
-    const notifMessage = message || 'New release update available!';
-
-    const options = {
-      body: notifMessage,
-      icon: logoUrl,
-      badge: logoUrl,
-      tag: 'sb19-push-' + Date.now(),
-      renotify: true,
-      data: {
-        url: url || '/',
-        timestamp: Date.now(),
-      },
-    };
-
-    event.waitUntil(self.registration.showNotification(notifTitle, options));
-  }
 });
 
 // Handle Notification Click - Navigates directly to target URL

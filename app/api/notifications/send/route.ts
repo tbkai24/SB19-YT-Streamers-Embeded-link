@@ -84,7 +84,18 @@ export async function POST(request: Request) {
         .not('keys', 'is', null);
 
       if (subs && subs.length > 0) {
+        // Strictly deduplicate subscriptions by p256dh device key so each physical device gets EXACTLY 1 push
+        const uniqueSubsMap = new Map();
+        for (const sub of subs) {
+          const deviceKey = sub.keys?.p256dh || sub.endpoint;
+          if (!uniqueSubsMap.has(deviceKey)) {
+            uniqueSubsMap.set(deviceKey, sub);
+          }
+        }
+        const uniqueSubs = Array.from(uniqueSubsMap.values());
+
         const pushPayload = JSON.stringify({
+          id: notificationRecord?.id || Date.now(),
           title: title.trim(),
           message: message.trim(),
           url: targetUrl,
@@ -92,7 +103,7 @@ export async function POST(request: Request) {
           icon: BRAND_LOGO_URL,
         });
 
-        const pushPromises = subs.map(async (sub: any) => {
+        const pushPromises = uniqueSubs.map(async (sub: any) => {
           if (!sub.endpoint || !sub.keys || !sub.keys.p256dh || !sub.keys.auth) {
             return;
           }
