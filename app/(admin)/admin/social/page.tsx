@@ -33,7 +33,11 @@ export default function SocialLinksAdminPage() {
   useEffect(() => {
     if (activeProfile) {
       const initialLinks: SocialLinkItem[] = [];
-      if (activeProfile.youtube_url) initialLinks.push({ id: 'yt', platform: 'youtube', url: activeProfile.youtube_url });
+      if (activeProfile.youtube_url) {
+        const isVideo = activeProfile.youtube_url.includes('watch?v=') || activeProfile.youtube_url.includes('youtu.be/');
+        const cleanYt = isVideo ? 'https://www.youtube.com/@sb19official' : activeProfile.youtube_url;
+        initialLinks.push({ id: 'yt', platform: 'youtube', url: cleanYt });
+      }
       if (activeProfile.instagram_url) initialLinks.push({ id: 'ig', platform: 'instagram', url: activeProfile.instagram_url });
       if (activeProfile.facebook_url) initialLinks.push({ id: 'fb', platform: 'facebook', url: activeProfile.facebook_url });
       if (activeProfile.x_url) initialLinks.push({ id: 'x', platform: 'x', url: activeProfile.x_url });

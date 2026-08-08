@@ -50,8 +50,15 @@ export async function fetchProfilesFromSupabase(): Promise<Profile[]> {
       const localProfiles = getStoredProfiles();
       const merged = (data as Profile[]).map((sp, idx) => {
         const lp = localProfiles.find(p => p.id === sp.id);
+        const isSpVideo = Boolean(sp.youtube_url && (sp.youtube_url.includes('watch?v=') || sp.youtube_url.includes('youtu.be/')));
+        const isLpVideo = Boolean(lp?.youtube_url && (lp.youtube_url.includes('watch?v=') || lp.youtube_url.includes('youtu.be/')));
+        const cleanYt = isSpVideo
+          ? (!isLpVideo && lp?.youtube_url ? lp.youtube_url : 'https://www.youtube.com/@sb19official')
+          : sp.youtube_url;
+
         return {
           ...sp,
+          youtube_url: cleanYt,
           display_order: lp?.display_order ?? sp.display_order ?? idx + 1,
           custom_social_links: sp.custom_social_links ?? lp?.custom_social_links ?? null,
         };
