@@ -48,7 +48,11 @@ export function PwaInstaller() {
     const handleBeforeInstallPrompt = (e: Event) => {
       e.preventDefault();
       setDeferredPrompt(e);
-      if (!isDismissed && !isInstalled) {
+      // If browser fires beforeinstallprompt again, user uninstalled or does not have app installed
+      localStorage.removeItem('sb19_pwa_installed');
+
+      const isDismissed = localStorage.getItem('sb19_pwa_dismissed');
+      if (!isDismissed) {
         setShowInstallBanner(true);
       }
     };
