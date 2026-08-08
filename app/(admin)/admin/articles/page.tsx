@@ -4,10 +4,11 @@ import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { useAdminWorkspace } from '../layout';
 import { Article, ExtractedMetadata } from '@/types/database';
-import { getStoredArticles, saveArticles, saveArticleToSupabase, generateUUID } from '@/lib/data-store';
+import { getStoredArticles, saveArticles, saveArticleToSupabase, deleteArticleFromSupabase, generateUUID } from '@/lib/data-store';
 import { normalizeUrl, decodeHtmlEntities } from '@/lib/url-normalizer';
 import { ImageUploadInput } from '@/components/admin/image-upload-input';
-import { Plus, Trash2, Edit2, ExternalLink, Sparkles, Loader2, Link2, MoveUp, MoveDown, X, CheckCircle2, Shuffle } from 'lucide-react';
+import { DeleteConfirmModal } from '@/components/admin/delete-confirm-modal';
+import { Plus, Trash2, Edit2, ExternalLink, Sparkles, Loader2, Link2, MoveUp, MoveDown, X, CheckCircle2, Shuffle, Archive, RotateCcw, AlertTriangle, ArrowUpDown } from 'lucide-react';
 
 export default function ArticlesAdminPage() {
   const { activeProfile, articles, refreshData } = useAdminWorkspace();
@@ -16,6 +17,11 @@ export default function ArticlesAdminPage() {
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [editingArticle, setEditingArticle] = useState<Article | null>(null);
 
+  const [viewTab, setViewTab] = useState<'active' | 'archived'>('active');
+  const [sortBy, setSortBy] = useState<'order' | 'name-asc' | 'name-desc' | 'clicks-desc' | 'clicks-asc' | 'newest' | 'oldest'>('order');
+  const [softDeleteTarget, setSoftDeleteTarget] = useState<Article | null>(null);
+  const [permDeleteTarget, setPermDeleteTarget] = useState<Article | null>(null);
+
   const [url, setUrl] = useState('');
   const [title, setTitle] = useState('');
   const [websiteName, setWebsiteName] = useState('');
@@ -23,7 +29,7 @@ export default function ArticlesAdminPage() {
   const [description, setDescription] = useState('');
   const [fetchingMeta, setFetchingMeta] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [toast, setToast] = useState<{ message: string; type: 'success' | 'info' } | null>(null);
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'info' | 'rose' } | null>(null);
 
   useEffect(() => {
     setMounted(true);
@@ -31,7 +37,7 @@ export default function ArticlesAdminPage() {
 
   if (!activeProfile) return null;
 
-  const showToast = (message: string, type: 'success' | 'info' = 'success') => {
+  const showToast = (message: string, type: 'success' | 'info' | 'rose' = 'success') => {
     setToast({ message, type });
     setTimeout(() => setToast(null), 4000);
   };
@@ -39,6 +45,33 @@ export default function ArticlesAdminPage() {
   const profileArticles = articles
     .filter(a => a.profile_id === activeProfile.id)
     .sort((a, b) => a.display_order - b.display_order);
+
+  const activeArticles = profileArticles.filter(a => a.status !== 'archived');
+  const archivedArticles = profileArticles.filter(a => a.status === 'archived');
+  const currentTabArticles = viewTab === 'active' ? activeArticles : archivedArticles;
+
+  const getSortedArticlesList = (baseList: Article[]) => {
+    const list = [...baseList];
+    switch (sortBy) {
+      case 'name-asc':
+        return list.sort((a, b) => a.title.localeCompare(b.title));
+      case 'name-desc':
+        return list.sort((a, b) => b.title.localeCompare(a.title));
+      case 'clicks-desc':
+        return list.sort((a, b) => (b.clicks_count || 0) - (a.clicks_count || 0));
+      case 'clicks-asc':
+        return list.sort((a, b) => (a.clicks_count || 0) - (b.clicks_count || 0));
+      case 'newest':
+        return list.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+      case 'oldest':
+        return list.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+      case 'order':
+      default:
+        return list.sort((a, b) => a.display_order - b.display_order);
+    }
+  };
+
+  const sortedTabArticles = getSortedArticlesList(currentTabArticles);
 
   const handleFetchMetadata = async () => {
     if (!url.trim()) return;
@@ -95,6 +128,17 @@ export default function ArticlesAdminPage() {
       await saveArticleToSupabase(updatedArticle);
       showToast('Article updated successfully!', 'success');
     } else {
+      // Check for URL duplication within active profile
+      const duplicate = allArticles.find(
+        a => a.profile_id === activeProfile.id && (a.canonical_url === normalized || a.article_url === url.trim())
+      );
+
+      if (duplicate) {
+        setSubmitting(false);
+        showToast('Duplicate URL! This article has already been added to this profile.', 'rose');
+        return;
+      }
+
       const newArt: Article = {
         id: generateUUID(),
         profile_id: activeProfile.id,
@@ -104,7 +148,7 @@ export default function ArticlesAdminPage() {
         title: title.trim(),
         thumbnail: thumbnail.trim() || null,
         description: description.trim() || null,
-        display_order: profileArticles.length + 1,
+        display_order: activeArticles.length + 1,
         status: 'published',
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
@@ -119,16 +163,52 @@ export default function ArticlesAdminPage() {
     resetForm();
   };
 
-  const handleDelete = (artId: string) => {
-    if (!confirm('Are you sure you want to delete this article?')) return;
-    const all = getStoredArticles();
-    const filtered = all.filter(a => a.id !== artId);
-    saveArticles(filtered);
+  // 1. Soft Delete (Move to Recycle Bin)
+  const handleConfirmSoftDelete = async () => {
+    if (!softDeleteTarget) return;
+    const allArticles = getStoredArticles();
+    const updatedArticle: Article = {
+      ...softDeleteTarget,
+      status: 'archived',
+      updated_at: new Date().toISOString(),
+    };
+    const updated = allArticles.map(a => a.id === softDeleteTarget.id ? updatedArticle : a);
+    saveArticles(updated);
+    await saveArticleToSupabase(updatedArticle);
     refreshData();
+    showToast(`"${softDeleteTarget.title}" moved to Recycle Bin.`, 'info');
+    setSoftDeleteTarget(null);
+  };
+
+  // 2. Restore from Recycle Bin
+  const handleRestore = async (art: Article) => {
+    const allArticles = getStoredArticles();
+    const updatedArticle: Article = {
+      ...art,
+      status: 'published',
+      updated_at: new Date().toISOString(),
+    };
+    const updated = allArticles.map(a => a.id === art.id ? updatedArticle : a);
+    saveArticles(updated);
+    await saveArticleToSupabase(updatedArticle);
+    refreshData();
+    showToast(`"${art.title}" restored to Active Articles!`, 'success');
+  };
+
+  // 3. Delete Permanently
+  const handleConfirmPermDelete = async () => {
+    if (!permDeleteTarget) return;
+    const allArticles = getStoredArticles();
+    const filtered = allArticles.filter(a => a.id !== permDeleteTarget.id);
+    saveArticles(filtered);
+    await deleteArticleFromSupabase(permDeleteTarget.id);
+    refreshData();
+    showToast(`"${permDeleteTarget.title}" permanently deleted.`, 'rose');
+    setPermDeleteTarget(null);
   };
 
   const handleMoveOrder = (artId: string, direction: 'up' | 'down') => {
-    const sorted = [...profileArticles];
+    const sorted = [...activeArticles];
     const index = sorted.findIndex(a => a.id === artId);
     if (index === -1) return;
 
@@ -150,10 +230,10 @@ export default function ArticlesAdminPage() {
   };
 
   const handleReshuffleOrder = async () => {
-    if (profileArticles.length < 2) return;
+    if (activeArticles.length < 2) return;
     
     // Fisher-Yates Random Shuffle
-    const shuffled = [...profileArticles];
+    const shuffled = [...activeArticles];
     for (let i = shuffled.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
       [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
@@ -196,7 +276,11 @@ export default function ArticlesAdminPage() {
     <div className="space-y-6 animate-fade-in max-w-4xl w-full">
       {/* Toast Feedback Notification Banner */}
       {toast && (
-        <div className="p-4 rounded-2xl border bg-emerald-50 border-emerald-300 text-emerald-900 flex items-center justify-between shadow-lg animate-fade-in">
+        <div className={`p-4 rounded-2xl border flex items-center justify-between shadow-lg animate-fade-in ${
+          toast.type === 'success' ? 'bg-emerald-50 border-emerald-300 text-emerald-900' :
+          toast.type === 'rose' ? 'bg-rose-50 border-rose-300 text-rose-900' :
+          'bg-slate-900 text-white border-slate-800'
+        }`}>
           <div className="flex items-center gap-3 text-xs font-bold">
             <CheckCircle2 className="w-5 h-5 shrink-0 text-emerald-600" />
             <span>{toast.message}</span>
@@ -216,15 +300,57 @@ export default function ArticlesAdminPage() {
         </div>
 
         <div className="flex items-center gap-2">
-          {profileArticles.length > 1 && (
+          {/* View Tab Switcher: Active vs Recycle Bin */}
+          <div className="flex items-center p-1 rounded-xl bg-slate-100 border border-slate-200 text-xs font-bold shrink-0">
+            <button
+              type="button"
+              onClick={() => setViewTab('active')}
+              className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
+                viewTab === 'active' ? 'bg-white text-slate-900 shadow-2xs' : 'text-slate-500 hover:text-slate-900'
+              }`}
+            >
+              Active ({activeArticles.length})
+            </button>
+            <button
+              type="button"
+              onClick={() => setViewTab('archived')}
+              className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer flex items-center gap-1.5 ${
+                viewTab === 'archived' ? 'bg-white text-rose-600 shadow-2xs' : 'text-slate-500 hover:text-rose-600'
+              }`}
+            >
+              <Archive className="w-3.5 h-3.5" />
+              <span>Bin ({archivedArticles.length})</span>
+            </button>
+          </div>
+
+          {viewTab === 'active' && activeArticles.length > 1 && (
+            <div className="relative flex items-center bg-slate-100 hover:bg-slate-200/80 p-2 rounded-xl border border-slate-200 text-slate-700 transition-all shrink-0 cursor-pointer shadow-2xs" title="Sort Articles">
+              <ArrowUpDown className="w-4 h-4 text-slate-700" />
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value as any)}
+                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer text-xs"
+                title="Sort Articles"
+              >
+                <option value="order">Default</option>
+                <option value="name-asc">Name (A to Z)</option>
+                <option value="name-desc">Name (Z to A)</option>
+                <option value="clicks-desc">Clicks (Highest)</option>
+                <option value="clicks-asc">Clicks (Lowest)</option>
+                <option value="newest">Newest</option>
+                <option value="oldest">Oldest</option>
+              </select>
+            </div>
+          )}
+
+          {viewTab === 'active' && activeArticles.length > 1 && (
             <button
               type="button"
               onClick={handleReshuffleOrder}
-              className="px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold flex items-center gap-1.5 border border-slate-200 transition-all cursor-pointer shrink-0"
-              title="Randomize display order of all articles for this profile"
+              className="p-2 rounded-xl bg-slate-100 hover:bg-rose-50 border border-slate-200 text-slate-700 hover:text-rose-600 transition-all cursor-pointer shrink-0 shadow-2xs"
+              title="Randomly Reshuffle Article Display Order"
             >
               <Shuffle className="w-4 h-4 text-rose-600" />
-              <span>Reshuffle Order</span>
             </button>
           )}
 
@@ -243,31 +369,35 @@ export default function ArticlesAdminPage() {
       </div>
 
       <div className="rounded-2xl glass-panel border border-slate-200 bg-white overflow-hidden shadow-xs">
-        {profileArticles.length === 0 ? (
+        {sortedTabArticles.length === 0 ? (
           <div className="p-12 text-center text-xs text-slate-500 font-medium">
-            No articles added to {activeProfile.title} yet. Click "Add New Article" to add one.
+            {viewTab === 'active'
+              ? `No active articles in ${activeProfile.title} workspace yet. Click "Add New Article" above.`
+              : `Recycle Bin is empty. No archived articles for ${activeProfile.title}.`}
           </div>
         ) : (
           <div className="divide-y divide-slate-200">
-            {profileArticles.map((art, idx) => (
+            {sortedTabArticles.map((art, idx) => (
               <div key={art.id} className="p-4 flex items-center justify-between gap-4 hover:bg-slate-50 transition-colors">
                 <div className="flex items-center gap-3.5 min-w-0 flex-1">
-                  <div className="flex flex-col gap-1 shrink-0">
-                    <button
-                      disabled={idx === 0}
-                      onClick={() => handleMoveOrder(art.id, 'up')}
-                      className="p-1 text-slate-400 hover:text-slate-900 disabled:opacity-30 cursor-pointer"
-                    >
-                      <MoveUp className="w-3.5 h-3.5" />
-                    </button>
-                    <button
-                      disabled={idx === profileArticles.length - 1}
-                      onClick={() => handleMoveOrder(art.id, 'down')}
-                      className="p-1 text-slate-400 hover:text-slate-900 disabled:opacity-30 cursor-pointer"
-                    >
-                      <MoveDown className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
+                  {viewTab === 'active' && (
+                    <div className="flex flex-col gap-1 shrink-0">
+                      <button
+                        disabled={idx === 0}
+                        onClick={() => handleMoveOrder(art.id, 'up')}
+                        className="p-1 text-slate-400 hover:text-slate-900 disabled:opacity-30 cursor-pointer"
+                      >
+                        <MoveUp className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        disabled={idx === activeArticles.length - 1}
+                        onClick={() => handleMoveOrder(art.id, 'down')}
+                        className="p-1 text-slate-400 hover:text-slate-900 disabled:opacity-30 cursor-pointer"
+                      >
+                        <MoveDown className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  )}
 
                   {art.thumbnail ? (
                     <img src={art.thumbnail} alt={decodeHtmlEntities(art.title)} className="w-16 h-12 rounded-lg object-cover bg-slate-100 shrink-0 border border-slate-200" />
@@ -285,7 +415,15 @@ export default function ArticlesAdminPage() {
                       <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
                         {(art.clicks_count || 0).toLocaleString()} clicks
                       </span>
-                      <span className="text-[10px] text-slate-500 font-medium">Order #{art.display_order}</span>
+                      {viewTab === 'active' && (
+                        <span className="text-[10px] text-slate-500 font-medium">Order #{art.display_order}</span>
+                      )}
+                      {viewTab === 'archived' && (
+                        <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-200 flex items-center gap-1">
+                          <Archive className="w-3 h-3" />
+                          <span>In Recycle Bin</span>
+                        </span>
+                      )}
                     </div>
                     <h3 className="text-xs font-bold text-slate-900 truncate mt-1">{decodeHtmlEntities(art.title)}</h3>
                     <div className="text-[11px] text-slate-500 font-medium truncate">{art.article_url}</div>
@@ -301,26 +439,69 @@ export default function ArticlesAdminPage() {
                   >
                     <ExternalLink className="w-3.5 h-3.5" />
                   </a>
-                  <button
-                    onClick={() => openEdit(art)}
-                    className="p-2 rounded-xl bg-slate-100 text-slate-700 hover:text-rose-600 hover:bg-slate-200 border border-slate-200 cursor-pointer"
-                    title="Edit article"
-                  >
-                    <Edit2 className="w-3.5 h-3.5" />
-                  </button>
-                  <button
-                    onClick={() => handleDelete(art.id)}
-                    className="p-2 rounded-xl bg-rose-50 text-rose-600 hover:bg-rose-100 border border-rose-200 cursor-pointer"
-                    title="Delete article"
-                  >
-                    <Trash2 className="w-3.5 h-3.5" />
-                  </button>
+
+                  {viewTab === 'active' ? (
+                    <>
+                      <button
+                        onClick={() => openEdit(art)}
+                        className="p-2 rounded-xl bg-slate-100 text-slate-700 hover:text-rose-600 hover:bg-slate-200 border border-slate-200 cursor-pointer"
+                        title="Edit article"
+                      >
+                        <Edit2 className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        onClick={() => setSoftDeleteTarget(art)}
+                        className="p-2 rounded-xl bg-rose-50 text-rose-600 hover:bg-rose-100 border border-rose-200 cursor-pointer"
+                        title="Move to Recycle Bin"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <button
+                        onClick={() => handleRestore(art)}
+                        className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold flex items-center gap-1.5 shadow-xs transition-colors cursor-pointer"
+                        title="Restore article to active list"
+                      >
+                        <RotateCcw className="w-3.5 h-3.5" />
+                        <span>Restore</span>
+                      </button>
+                      <button
+                        onClick={() => setPermDeleteTarget(art)}
+                        className="p-2 rounded-xl bg-rose-100 text-rose-700 hover:bg-rose-200 border border-rose-300 cursor-pointer"
+                        title="Permanently Delete Article"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </>
+                  )}
                 </div>
               </div>
             ))}
           </div>
         )}
       </div>
+
+      {/* 1. Soft Delete Confirmation Modal (Move to Bin) */}
+      <DeleteConfirmModal
+        isOpen={Boolean(softDeleteTarget)}
+        title="Move Article to Recycle Bin?"
+        itemName={softDeleteTarget ? decodeHtmlEntities(softDeleteTarget.title) : undefined}
+        isPermanent={false}
+        onClose={() => setSoftDeleteTarget(null)}
+        onConfirm={handleConfirmSoftDelete}
+      />
+
+      {/* 2. Permanent Delete Confirmation Modal */}
+      <DeleteConfirmModal
+        isOpen={Boolean(permDeleteTarget)}
+        title="Permanently Delete Article?"
+        itemName={permDeleteTarget ? decodeHtmlEntities(permDeleteTarget.title) : undefined}
+        isPermanent={true}
+        onClose={() => setPermDeleteTarget(null)}
+        onConfirm={handleConfirmPermDelete}
+      />
 
       {isAddOpen && mounted && createPortal(
         <div className="fixed inset-0 z-[9999] flex items-start justify-center p-4 sm:p-6 pt-24 sm:pt-28 pb-10 bg-slate-900/60 backdrop-blur-md animate-fade-in overflow-y-auto">
@@ -367,16 +548,18 @@ export default function ArticlesAdminPage() {
                     type="button"
                     onClick={handleFetchMetadata}
                     disabled={fetchingMeta || !url.trim()}
-                    className="absolute right-2 px-3 py-1 bg-rose-50 hover:bg-rose-100 disabled:opacity-50 text-rose-700 text-xs font-bold rounded-lg border border-rose-200 flex items-center gap-1.5 transition-colors cursor-pointer"
+                    className="absolute right-2 px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-[10px] font-extrabold flex items-center gap-1 disabled:opacity-50 transition-colors cursor-pointer"
                   >
-                    {fetchingMeta ? (
-                      <Loader2 className="w-3.5 h-3.5 animate-spin text-rose-600" />
-                    ) : (
-                      <Sparkles className="w-3.5 h-3.5 text-rose-600" />
-                    )}
-                    <span>Auto-Fetch</span>
+                    {fetchingMeta ? <Loader2 className="w-3 h-3 animate-spin" /> : <Sparkles className="w-3 h-3 text-rose-600" />}
+                    <span>Auto Fill</span>
                   </button>
                 </div>
+                {url.trim() && !editingArticle && profileArticles.some(a => a.canonical_url === normalizeUrl(url) || a.article_url.trim() === url.trim()) && (
+                  <p className="text-[11px] text-rose-600 font-extrabold mt-1.5 flex items-center gap-1 animate-fade-in">
+                    <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
+                    <span>This article URL has already been added to {activeProfile.title}!</span>
+                  </p>
+                )}
               </div>
 
               <div>

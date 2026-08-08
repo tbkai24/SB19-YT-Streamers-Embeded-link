@@ -190,6 +190,54 @@ export async function saveArticleToSupabase(article: Partial<Article>): Promise<
   return { success: false, error: 'Failed to save article.' };
 }
 
+export async function deleteArticleFromSupabase(articleId: string): Promise<{ success: boolean; error?: string }> {
+  // Update local storage first
+  const current = getStoredArticles();
+  const filtered = current.filter(a => a.id !== articleId);
+  saveArticles(filtered);
+
+  try {
+    const supabase = createClient();
+    const { error } = await supabase
+      .from('articles')
+      .delete()
+      .eq('id', articleId);
+
+    if (error) {
+      console.warn('Supabase deleteArticle notice:', error.message || error);
+      return { success: false, error: error.message };
+    }
+    return { success: true };
+  } catch (err: any) {
+    console.warn('Supabase deleteArticle notice:', err?.message || err);
+    return { success: false, error: err?.message };
+  }
+}
+
+export async function deleteProfileFromSupabase(profileId: string): Promise<{ success: boolean; error?: string }> {
+  // Update local storage first
+  const current = getStoredProfiles();
+  const filtered = current.filter(p => p.id !== profileId);
+  saveProfiles(filtered);
+
+  try {
+    const supabase = createClient();
+    const { error } = await supabase
+      .from('profiles')
+      .delete()
+      .eq('id', profileId);
+
+    if (error) {
+      console.warn('Supabase deleteProfile notice:', error.message || error);
+      return { success: false, error: error.message };
+    }
+    return { success: true };
+  } catch (err: any) {
+    console.warn('Supabase deleteProfile notice:', err?.message || err);
+    return { success: false, error: err?.message };
+  }
+}
+
 // 3. SUBMISSIONS
 export function getStoredSubmissions(): ArticleSubmission[] {
   if (typeof window === 'undefined') return [];
@@ -263,6 +311,30 @@ export async function updateSubmissionInSupabase(sub: ArticleSubmission) {
     await supabase.from('article_submissions').upsert(sub);
   } catch (err) {
     console.error('Error updating submission in Supabase:', err);
+  }
+}
+
+export async function deleteSubmissionFromSupabase(subId: string): Promise<{ success: boolean; error?: string }> {
+  // Update local storage first
+  const current = getStoredSubmissions();
+  const filtered = current.filter(s => s.id !== subId);
+  saveSubmissions(filtered);
+
+  try {
+    const supabase = createClient();
+    const { error } = await supabase
+      .from('article_submissions')
+      .delete()
+      .eq('id', subId);
+
+    if (error) {
+      console.warn('Supabase deleteSubmission notice:', error.message || error);
+      return { success: false, error: error.message };
+    }
+    return { success: true };
+  } catch (err: any) {
+    console.warn('Supabase deleteSubmission notice:', err?.message || err);
+    return { success: false, error: err?.message };
   }
 }
 

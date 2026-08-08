@@ -3,16 +3,18 @@
 import React, { useState } from 'react';
 import { useAdminWorkspace } from '../layout';
 import { ArticleSubmission, Article } from '@/types/database';
-import { getStoredSubmissions, saveSubmissions, getStoredArticles, saveArticles, generateUUID, approveSubmissionInSupabase, updateSubmissionStatusInSupabase } from '@/lib/data-store';
+import { getStoredSubmissions, saveSubmissions, getStoredArticles, saveArticles, generateUUID, approveSubmissionInSupabase, updateSubmissionStatusInSupabase, deleteSubmissionFromSupabase } from '@/lib/data-store';
 import { RejectSubmissionModal } from '@/components/admin/reject-submission-modal';
 import { EditSubmissionModal } from '@/components/admin/edit-submission-modal';
-import { Check, X, ExternalLink, Clock, MessageSquare, Copy, Edit2, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react';
+import { DeleteConfirmModal } from '@/components/admin/delete-confirm-modal';
+import { Check, X, ExternalLink, Clock, MessageSquare, Copy, Edit2, CheckCircle2, AlertCircle, Loader2, Trash2 } from 'lucide-react';
 
 export default function SubmissionsAdminPage() {
   const { activeProfile, submissions, refreshData } = useAdminWorkspace();
 
   const [rejectModalSub, setRejectModalSub] = useState<ArticleSubmission | null>(null);
   const [editModalSub, setEditModalSub] = useState<ArticleSubmission | null>(null);
+  const [permDeleteSubTarget, setPermDeleteSubTarget] = useState<ArticleSubmission | null>(null);
   const [processingId, setProcessingId] = useState<string | null>(null);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'info' | 'rose' } | null>(null);
 
@@ -81,6 +83,21 @@ export default function SubmissionsAdminPage() {
     setProcessingId(null);
     showToast('Submission marked as duplicate.', 'info');
     refreshData();
+  };
+
+  const handleConfirmPermDeleteSub = async () => {
+    if (!permDeleteSubTarget) return;
+    setProcessingId(permDeleteSubTarget.id);
+    const allSubs = getStoredSubmissions();
+    const filtered = allSubs.filter(s => s.id !== permDeleteSubTarget.id);
+    saveSubmissions(filtered);
+
+    await deleteSubmissionFromSupabase(permDeleteSubTarget.id);
+
+    setProcessingId(null);
+    showToast('Submission permanently deleted.', 'rose');
+    refreshData();
+    setPermDeleteSubTarget(null);
   };
 
   const handleEditSaved = () => {
@@ -195,6 +212,15 @@ export default function SubmissionsAdminPage() {
                   </button>
 
                   <button
+                    onClick={() => setPermDeleteSubTarget(sub)}
+                    disabled={processingId === sub.id}
+                    className="p-2 rounded-xl bg-slate-100 hover:bg-rose-50 border border-slate-200 text-slate-500 hover:text-rose-600 transition-colors cursor-pointer"
+                    title="Permanently Delete Submission"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+
+                  <button
                     onClick={() => handleApprove(sub)}
                     disabled={processingId === sub.id}
                     className="p-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white shadow-md hover:shadow-lg transition-all cursor-pointer"
@@ -225,6 +251,15 @@ export default function SubmissionsAdminPage() {
         isOpen={Boolean(rejectModalSub)}
         onClose={() => setRejectModalSub(null)}
         onReject={handleRejectConfirm}
+      />
+
+      <DeleteConfirmModal
+        isOpen={Boolean(permDeleteSubTarget)}
+        title="Permanently Delete Submission?"
+        itemName={permDeleteSubTarget ? (permDeleteSubTarget.title || permDeleteSubTarget.article_url) : undefined}
+        isPermanent={true}
+        onClose={() => setPermDeleteSubTarget(null)}
+        onConfirm={handleConfirmPermDeleteSub}
       />
     </div>
   );
