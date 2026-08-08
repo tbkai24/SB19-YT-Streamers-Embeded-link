@@ -132,12 +132,13 @@ export function CreateProfileModal({ isOpen, onClose, onCreated }: CreateProfile
   };
 
   return createPortal(
-    <div className="fixed inset-0 z-[9999] flex items-start justify-center p-4 sm:p-6 pt-24 sm:pt-28 pb-10 bg-slate-900/60 backdrop-blur-md animate-fade-in overflow-y-auto">
-      <div className="relative w-full max-w-2xl max-h-[calc(100vh-130px)] flex flex-col rounded-3xl bg-white border border-slate-200 shadow-2xl text-slate-900 overflow-hidden shrink-0">
-        <div className="flex items-center justify-between pb-4 border-b border-slate-200">
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 sm:p-6 bg-slate-900/60 backdrop-blur-md animate-fade-in">
+      <div className="relative w-full max-w-2xl max-h-[90vh] flex flex-col rounded-3xl bg-white border border-slate-200 shadow-2xl text-slate-900 overflow-hidden shrink-0">
+        {/* Fixed Header */}
+        <div className="flex items-center justify-between p-6 pb-4 border-b border-slate-200 bg-white shrink-0">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-2xl bg-rose-50 border border-rose-200 flex items-center justify-center text-rose-600 shadow-xs">
-              <Sparkles className="w-5 h-5" />
+              <Sparkles className="w-5 h-5 text-rose-600" />
             </div>
             <div>
               <h2 className="text-lg font-black text-slate-900 tracking-tight">Create New Release Profile</h2>
@@ -152,14 +153,15 @@ export function CreateProfileModal({ isOpen, onClose, onCreated }: CreateProfile
           </button>
         </div>
 
-        {error && (
-          <div className="mt-4 p-3.5 rounded-2xl bg-rose-50 border border-rose-200 text-rose-700 text-xs font-bold flex items-center gap-2 animate-fade-in shadow-xs">
-            <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
-            <span>{error}</span>
-          </div>
-        )}
+        {/* Scrollable Form Content */}
+        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6 space-y-4">
+          {error && (
+            <div className="p-3.5 rounded-2xl bg-rose-50 border border-rose-200 text-rose-700 text-xs font-bold flex items-center gap-2 animate-fade-in shadow-xs">
+              <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
+              <span>{error}</span>
+            </div>
+          )}
 
-        <form onSubmit={handleSubmit} className="mt-6 space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-black text-slate-900 uppercase tracking-wider mb-1.5 flex items-center gap-1">
@@ -298,7 +300,7 @@ export function CreateProfileModal({ isOpen, onClose, onCreated }: CreateProfile
             )}
           </div>
 
-          <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-200 mt-6">
+          <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-200 mt-6 sticky bottom-0 bg-white pb-2">
             <button
               type="button"
               onClick={onClose}
