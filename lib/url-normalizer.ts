@@ -153,6 +153,15 @@ export async function translateTextToEnglish(text: string): Promise<string> {
   if (!text || !text.trim()) return text;
   const decoded = decodeHtmlEntities(text);
 
+  const isValid = (trans?: string | null) => {
+    if (!trans || !trans.trim()) return false;
+    const upper = trans.toUpperCase();
+    if (upper.includes('PLEASE SELECT TWO DISTINCT LANGUAGES')) return false;
+    if (upper.includes('MYMEMORY WARNING')) return false;
+    if (upper.includes('INVALID LANGUAGE PAIR')) return false;
+    return true;
+  };
+
   // 1. Try server-side route
   try {
     const res = await fetch('/api/translate', {
@@ -162,7 +171,12 @@ export async function translateTextToEnglish(text: string): Promise<string> {
     });
     if (res.ok) {
       const data = await res.json();
-      if (data && data.translated && data.translated.trim().toLowerCase() !== decoded.trim().toLowerCase()) {
+      if (
+        data &&
+        data.translated &&
+        isValid(data.translated) &&
+        data.translated.trim().toLowerCase() !== decoded.trim().toLowerCase()
+      ) {
         return decodeHtmlEntities(data.translated);
       }
     }
@@ -170,15 +184,20 @@ export async function translateTextToEnglish(text: string): Promise<string> {
     // Ignore
   }
 
-  // 2. Client-side MyMemory API fallback (Works 100% in browser CORS)
+  // 2. Client-side MyMemory API fallback
   try {
     const mmRes = await fetch(
-      `https://api.mymemory.translated.net/get?q=${encodeURIComponent(decoded)}&langpair=autodetect|en`
+      `https://api.mymemory.translated.net/get?q=${encodeURIComponent(decoded)}&langpair=id|en`
     );
     if (mmRes.ok) {
       const mmData = await mmRes.json();
       const translatedText = mmData?.responseData?.translatedText;
-      if (translatedText && typeof translatedText === 'string' && translatedText.trim()) {
+      if (
+        translatedText &&
+        typeof translatedText === 'string' &&
+        isValid(translatedText) &&
+        translatedText.trim().toLowerCase() !== decoded.trim().toLowerCase()
+      ) {
         return decodeHtmlEntities(translatedText.trim());
       }
     }

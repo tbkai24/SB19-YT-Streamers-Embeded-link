@@ -12,28 +12,17 @@ export async function POST(request: Request) {
 
     const decoded = decodeHtmlEntities(rawText);
 
-    // 1. Try MyMemory API (Reliable for Indonesian & mixed language text)
-    try {
-      const mmRes = await fetch(
-        `https://api.mymemory.translated.net/get?q=${encodeURIComponent(decoded)}&langpair=autodetect|en`
-      );
-      if (mmRes.ok) {
-        const mmData = await mmRes.json();
-        const translatedText = mmData?.responseData?.translatedText;
-        if (
-          translatedText &&
-          typeof translatedText === 'string' &&
-          translatedText.trim() &&
-          translatedText.trim().toLowerCase() !== decoded.trim().toLowerCase()
-        ) {
-          return NextResponse.json({ translated: decodeHtmlEntities(translatedText.trim()) });
-        }
-      }
-    } catch {
-      // Fallback to Google
-    }
+    // Validation helper to reject MyMemory error responses
+    const isValidTranslation = (trans: string) => {
+      if (!trans || !trans.trim()) return false;
+      const upper = trans.toUpperCase();
+      if (upper.includes('PLEASE SELECT TWO DISTINCT LANGUAGES')) return false;
+      if (upper.includes('MYMEMORY WARNING')) return false;
+      if (upper.includes('INVALID LANGUAGE PAIR')) return false;
+      return true;
+    };
 
-    // 2. Google Translate GTX (sl=auto)
+    // 1. Primary: Google Translate GTX (sl=auto)
     try {
       const res = await fetch(
         `https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=en&dt=t&q=${encodeURIComponent(decoded)}`,
@@ -51,7 +40,7 @@ export async function POST(request: Request) {
             .map((item: any) => (Array.isArray(item) && typeof item[0] === 'string' ? item[0] : ''))
             .filter(Boolean);
           const translated = translatedParts.join(' ');
-          if (translated && translated.trim()) {
+          if (isValidTranslation(translated) && translated.trim().toLowerCase() !== decoded.trim().toLowerCase()) {
             return NextResponse.json({ translated: decodeHtmlEntities(translated.trim()) });
           }
         }
@@ -60,7 +49,7 @@ export async function POST(request: Request) {
       // Ignore
     }
 
-    // 3. Google Translate GTX (sl=id)
+    // 2. Google Translate GTX (sl=id for Indonesian)
     try {
       const res2 = await fetch(
         `https://translate.googleapis.com/translate_a/single?client=gtx&sl=id&tl=en&dt=t&q=${encodeURIComponent(decoded)}`,
@@ -78,9 +67,30 @@ export async function POST(request: Request) {
             .map((item: any) => (Array.isArray(item) && typeof item[0] === 'string' ? item[0] : ''))
             .filter(Boolean);
           const translated2 = translatedParts2.join(' ');
-          if (translated2 && translated2.trim()) {
+          if (isValidTranslation(translated2) && translated2.trim().toLowerCase() !== decoded.trim().toLowerCase()) {
             return NextResponse.json({ translated: decodeHtmlEntities(translated2.trim()) });
           }
+        }
+      }
+    } catch {
+      // Ignore
+    }
+
+    // 3. MyMemory API (Strictly validated)
+    try {
+      const mmRes = await fetch(
+        `https://api.mymemory.translated.net/get?q=${encodeURIComponent(decoded)}&langpair=id|en`
+      );
+      if (mmRes.ok) {
+        const mmData = await mmRes.json();
+        const translatedText = mmData?.responseData?.translatedText;
+        if (
+          translatedText &&
+          typeof translatedText === 'string' &&
+          isValidTranslation(translatedText) &&
+          translatedText.trim().toLowerCase() !== decoded.trim().toLowerCase()
+        ) {
+          return NextResponse.json({ translated: decodeHtmlEntities(translatedText.trim()) });
         }
       }
     } catch {
