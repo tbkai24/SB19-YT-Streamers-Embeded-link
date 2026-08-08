@@ -8,6 +8,7 @@ export default function manifest(): MetadataRoute.Manifest {
     short_name: 'SB19 Hub',
     description: 'Official SB19 Music Streaming Hub, Release Links & Fan Articles Tracker',
     start_url: '/',
+    id: '/',
     display: 'standalone',
     orientation: 'portrait',
     background_color: '#0f172a',
@@ -16,6 +17,18 @@ export default function manifest(): MetadataRoute.Manifest {
       {
         src: logoUrl,
         sizes: '192x192',
+        type: 'image/jpeg',
+        purpose: 'any',
+      },
+      {
+        src: logoUrl,
+        sizes: '192x192',
+        type: 'image/jpeg',
+        purpose: 'maskable',
+      },
+      {
+        src: logoUrl,
+        sizes: '512x512',
         type: 'image/jpeg',
         purpose: 'any',
       },

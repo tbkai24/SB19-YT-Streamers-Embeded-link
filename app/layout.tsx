@@ -5,6 +5,12 @@ import { PwaInstaller } from '@/components/public/pwa-installer';
 export const metadata: Metadata = {
   title: 'SB19 Stream Hub - Verified Articles & Releases',
   description: 'Centralized directory of streaming articles for SB19 songs, albums, and campaigns created by A’TIN for A’TIN.',
+  manifest: '/manifest.webmanifest',
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'black-translucent',
+    title: 'SB19 Hub',
+  },
   openGraph: {
     title: 'SB19 Stream Hub',
     description: 'Centralized directory of streaming articles for SB19 releases.',
