@@ -4,11 +4,13 @@ import webpush from 'web-push';
 
 const BRAND_LOGO_URL = '/assets/ytslogo.jpg';
 
-const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || 'BFCMfc_zll7t8hZAdbPxvcMAb_G9e7nOcAWIMPWjobBUGJdFVHd3-4qWURL9Td8MUDJaRnQlZMc8qfg_gJGeMOM';
-const vapidPrivateKey = process.env.VAPID_PRIVATE_KEY || 'VRj6UGk9wIDs5Eoy7vi2ZvskpTyPQFjqh0TGzP0dgIE';
+const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || 'BB7y1qu9lKF76iuobKPsdfZHy4MuNzHoP5jMqyNoMb0Jlbp883isgzLUdRKQWDHXoD4lqtfMaG0TAnwbF4IZUWU';
+const vapidPrivateKey = process.env.VAPID_PRIVATE_KEY || '';
 const vapidSubject = process.env.VAPID_SUBJECT || 'mailto:admin@sb19streaminghub.com';
 
-webpush.setVapidDetails(vapidSubject, vapidPublicKey, vapidPrivateKey);
+if (vapidPublicKey && vapidPrivateKey) {
+  webpush.setVapidDetails(vapidSubject, vapidPublicKey, vapidPrivateKey);
+}
 
 function getSupabaseServerClient() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
