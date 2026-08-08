@@ -95,8 +95,8 @@ export function normalizeReferrer(referrerUrl?: string | null): string {
   }
   const ref = referrerUrl.toLowerCase().trim();
 
-  if (ref.includes('localhost') || ref.includes('127.0.0.1') || ref.includes('::1')) {
-    return 'Localhost';
+  if (ref.includes('localhost') || ref.includes('127.0.0.1') || ref.includes('::1') || ref.includes('sb-19-yt-streamers-embeded-link') || ref.includes('sb19-streaming-hub')) {
+    return 'Direct Link';
   }
   if (ref.includes('twitter') || ref.includes('t.co') || ref.includes('x.com') || ref.includes('com.twitter.android')) {
     return 'Twitter (X)';

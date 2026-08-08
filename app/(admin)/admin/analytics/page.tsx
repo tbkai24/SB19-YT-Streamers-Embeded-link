@@ -411,7 +411,14 @@ export default function AnalyticsAdminPage() {
               {countryList.map(([code, count]) => (
                 <div key={code} className="flex items-center justify-between p-2 rounded-xl bg-slate-50 border border-slate-200 text-xs">
                   <div className="flex items-center gap-2 font-bold text-slate-900">
-                    <span className="text-base leading-none">{getCountryFlagEmoji(code)}</span>
+                    <img
+                      src={`https://flagcdn.com/w40/${code.toLowerCase()}.png`}
+                      alt={code}
+                      className="w-5 h-3.5 object-cover rounded-xs border border-slate-200 shadow-2xs shrink-0"
+                      onError={(e) => {
+                        (e.target as HTMLElement).style.display = 'none';
+                      }}
+                    />
                     <span>{COUNTRY_NAMES[code] || code}</span>
                   </div>
                   <span className="px-2 py-0.5 rounded-md bg-white border border-slate-200 font-extrabold text-rose-600">
