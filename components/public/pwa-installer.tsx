@@ -174,6 +174,16 @@ export function PwaInstaller() {
 
         const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || 'BDyUoM5OfcS_tNX4oRESHQhpvRAJJ8xhOiFYaAm16o4EJ7YE5yV1d7_2lftzyegd8Bq7kLzeN4p7AGcc8k2uSR4';
 
+        // Unsubscribe old/stale subscription to guarantee fresh VAPID key pairing
+        if (sub) {
+          try {
+            await sub.unsubscribe();
+            sub = null;
+          } catch {
+            // Ignore
+          }
+        }
+
         if (!sub && vapidPublicKey) {
           try {
             const convertedKey = (base64String: string) => {
@@ -191,7 +201,7 @@ export function PwaInstaller() {
               userVisibleOnly: true,
               applicationServerKey: convertedKey(vapidPublicKey),
             });
-          } catch (subErr) {
+          } catch (subErr: any) {
             console.log('Push subscribe error:', subErr);
           }
         }
