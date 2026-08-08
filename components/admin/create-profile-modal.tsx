@@ -4,8 +4,9 @@ import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Profile } from '@/types/database';
 import { getStoredProfiles, saveProfiles, saveProfileToSupabase, generateUUID } from '@/lib/data-store';
+import { extractYouTubeId } from '@/lib/url-normalizer';
 import { ImageUploadInput } from './image-upload-input';
-import { X, Sparkles, Plus, Trash2, Share2, AlertCircle, Loader2 } from 'lucide-react';
+import { X, Sparkles, Plus, Trash2, Share2, AlertCircle, Loader2, Video, PlayCircle, Copy } from 'lucide-react';
 
 interface CreateProfileModalProps {
   isOpen: boolean;
@@ -15,7 +16,8 @@ interface CreateProfileModalProps {
 
 interface SocialItem {
   id: string;
-  platform: 'youtube' | 'instagram' | 'facebook' | 'x' | 'threads' | 'website';
+  platform: string;
+  customName?: string;
   url: string;
 }
 
@@ -25,7 +27,11 @@ const PLATFORM_OPTIONS = [
   { value: 'facebook', label: 'Facebook' },
   { value: 'x', label: 'X (Twitter)' },
   { value: 'threads', label: 'Threads' },
+  { value: 'tiktok', label: 'TikTok' },
+  { value: 'spotify', label: 'Spotify' },
+  { value: 'apple', label: 'Apple Music' },
   { value: 'website', label: 'Official Website' },
+  { value: 'custom', label: '+ Add Custom Platform...' },
 ] as const;
 
 export function CreateProfileModal({ isOpen, onClose, onCreated }: CreateProfileModalProps) {
@@ -36,6 +42,7 @@ export function CreateProfileModal({ isOpen, onClose, onCreated }: CreateProfile
   const [coverImage, setCoverImage] = useState('');
   const [profileImage, setProfileImage] = useState('');
   const [accentColor, setAccentColor] = useState('#e11d48');
+  const [featuredVideoUrl, setFeaturedVideoUrl] = useState('');
   const [socialLinks, setSocialLinks] = useState<SocialItem[]>([]);
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -46,6 +53,35 @@ export function CreateProfileModal({ isOpen, onClose, onCreated }: CreateProfile
 
   if (!isOpen || !mounted) return null;
 
+  const existingProfiles = getStoredProfiles();
+
+  const handleImportSocialsFromProfile = (targetProfileId: string) => {
+    if (!targetProfileId) return;
+    const sourceProfile = existingProfiles.find(p => p.id === targetProfileId);
+    if (!sourceProfile) return;
+
+    const imported: SocialItem[] = [];
+    if (sourceProfile.youtube_url) imported.push({ id: `yt-${Date.now()}`, platform: 'youtube', url: sourceProfile.youtube_url });
+    if (sourceProfile.instagram_url) imported.push({ id: `ig-${Date.now()}`, platform: 'instagram', url: sourceProfile.instagram_url });
+    if (sourceProfile.facebook_url) imported.push({ id: `fb-${Date.now()}`, platform: 'facebook', url: sourceProfile.facebook_url });
+    if (sourceProfile.x_url) imported.push({ id: `x-${Date.now()}`, platform: 'x', url: sourceProfile.x_url });
+    if (sourceProfile.threads_url) imported.push({ id: `th-${Date.now()}`, platform: 'threads', url: sourceProfile.threads_url });
+    if (sourceProfile.website_url) imported.push({ id: `web-${Date.now()}`, platform: 'website', url: sourceProfile.website_url });
+
+    if (sourceProfile.custom_social_links) {
+      sourceProfile.custom_social_links.forEach((c, idx) => {
+        imported.push({
+          id: `custom-${idx}-${Date.now()}`,
+          platform: 'custom',
+          customName: c.platform,
+          url: c.url,
+        });
+      });
+    }
+
+    setSocialLinks(imported);
+  };
+
   const handleTitleChange = (val: string) => {
     setTitle(val);
     setError('');
@@ -55,16 +91,16 @@ export function CreateProfileModal({ isOpen, onClose, onCreated }: CreateProfile
   };
 
   const handleAddSocial = () => {
-    const available = PLATFORM_OPTIONS.filter(p => !socialLinks.some(s => s.platform === p.value));
-    const nextPlat = available.length > 0 ? available[0].value : 'website';
-    setSocialLinks([...socialLinks, { id: `soc-${Date.now()}`, platform: nextPlat, url: '' }]);
+    const available = PLATFORM_OPTIONS.filter(p => p.value !== 'custom' && !socialLinks.some(s => s.platform === p.value));
+    const nextPlat = available.length > 0 ? available[0].value : 'custom';
+    setSocialLinks([...socialLinks, { id: `soc-${Date.now()}`, platform: nextPlat, customName: '', url: '' }]);
   };
 
   const handleRemoveSocial = (id: string) => {
     setSocialLinks(socialLinks.filter(s => s.id !== id));
   };
 
-  const handleUpdateSocial = (id: string, field: 'platform' | 'url', val: string) => {
+  const handleUpdateSocial = (id: string, field: 'platform' | 'customName' | 'url', val: string) => {
     setSocialLinks(socialLinks.map(s => s.id === id ? { ...s, [field]: val } : s));
   };
 
@@ -84,6 +120,17 @@ export function CreateProfileModal({ isOpen, onClose, onCreated }: CreateProfile
       return found && found.url.trim() ? found.url.trim() : null;
     };
 
+    const customLinks = socialLinks
+      .filter(s => s.platform === 'custom' || !['youtube', 'instagram', 'facebook', 'x', 'threads', 'website'].includes(s.platform))
+      .filter(s => s.url.trim())
+      .map(s => ({
+        platform: s.customName?.trim() || (PLATFORM_OPTIONS.find(p => p.value === s.platform)?.label || 'Social'),
+        url: s.url.trim(),
+      }));
+
+    const finalFeaturedUrl = featuredVideoUrl.trim() || null;
+    const finalYoutubeUrl = getUrl('youtube') || finalFeaturedUrl || null;
+
     const newProfile: Profile = {
       id: generateUUID(),
       title: title.trim(),
@@ -92,13 +139,15 @@ export function CreateProfileModal({ isOpen, onClose, onCreated }: CreateProfile
       cover_image: coverImage.trim() || null,
       profile_image: profileImage.trim() || null,
       accent_color: accentColor,
+      featured_video_url: finalFeaturedUrl,
       theme: 'dark',
       website_url: getUrl('website'),
-      youtube_url: getUrl('youtube'),
+      youtube_url: finalYoutubeUrl,
       facebook_url: getUrl('facebook'),
       instagram_url: getUrl('instagram'),
       x_url: getUrl('x'),
       threads_url: getUrl('threads'),
+      custom_social_links: customLinks.length > 0 ? customLinks : null,
       seo_title: `${title} - SB19 YouTube Streamers`,
       seo_description: description.trim() || null,
       status: 'published',
@@ -130,6 +179,8 @@ export function CreateProfileModal({ isOpen, onClose, onCreated }: CreateProfile
     onCreated(newProfile);
     onClose();
   };
+
+  const previewYtId = extractYouTubeId(featuredVideoUrl);
 
   return createPortal(
     <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 sm:p-6 bg-slate-900/60 backdrop-blur-md animate-fade-in">
@@ -222,6 +273,42 @@ export function CreateProfileModal({ isOpen, onClose, onCreated }: CreateProfile
             />
           </div>
 
+          {/* Featured Music Video YouTube Link */}
+          <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 space-y-2">
+            <label className="block text-xs font-bold text-slate-800 uppercase flex items-center gap-1.5">
+              <Video className="w-4 h-4 text-rose-600" />
+              <span>Featured Release Music Video (YouTube URL)</span>
+            </label>
+            <p className="text-[11px] text-slate-500 font-medium">
+              Paste YouTube link for playable MV player directly above Streaming Articles!
+            </p>
+            <input
+              type="url"
+              value={featuredVideoUrl}
+              onChange={(e) => setFeaturedVideoUrl(e.target.value)}
+              placeholder="https://www.youtube.com/watch?v=sb19mv"
+              className="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-xl text-slate-900 text-xs font-semibold focus:outline-none focus:border-rose-600 shadow-xs"
+            />
+
+            {previewYtId && (
+              <div className="pt-2 space-y-1.5">
+                <span className="text-[11px] font-bold text-slate-700 uppercase flex items-center gap-1">
+                  <PlayCircle className="w-3.5 h-3.5 text-rose-600" />
+                  <span>Live Playable MV Preview</span>
+                </span>
+                <div className="w-full aspect-video rounded-xl overflow-hidden shadow-md border border-slate-200 bg-black">
+                  <iframe
+                    src={`https://www.youtube-nocookie.com/embed/${previewYtId}?rel=0`}
+                    title="Live MV Player Preview"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                    allowFullScreen
+                    className="w-full h-full border-0"
+                  />
+                </div>
+              </div>
+            )}
+          </div>
+
           <div>
             <label className="block text-xs font-black text-slate-900 uppercase tracking-wider mb-1.5">
               Accent Color
@@ -257,6 +344,30 @@ export function CreateProfileModal({ isOpen, onClose, onCreated }: CreateProfile
               </button>
             </div>
 
+            {existingProfiles.length > 0 && (
+              <div className="mb-3 p-2.5 bg-rose-50/70 border border-rose-200 rounded-xl flex items-center justify-between gap-2 text-xs">
+                <span className="text-rose-900 font-bold flex items-center gap-1.5 shrink-0">
+                  <Copy className="w-3.5 h-3.5 text-rose-600" />
+                  <span>Autofill from:</span>
+                </span>
+                <select
+                  defaultValue=""
+                  onChange={(e) => {
+                    if (e.target.value) handleImportSocialsFromProfile(e.target.value);
+                    e.target.value = '';
+                  }}
+                  className="px-2.5 py-1 bg-white border border-rose-300 rounded-lg text-slate-900 text-xs font-bold focus:outline-none focus:border-rose-600 shadow-2xs cursor-pointer max-w-[240px]"
+                >
+                  <option value="" disabled>Select Profile to Copy Socials...</option>
+                  {existingProfiles.map(p => (
+                    <option key={p.id} value={p.id}>
+                      Copy from {p.title}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+
             {socialLinks.length === 0 ? (
               <p className="text-[11px] text-slate-500 italic bg-slate-50 border border-slate-200 rounded-xl p-3 text-center font-medium">
                 No social links added yet. Click &quot;Add Link&quot; above to add official links (Optional).
@@ -264,7 +375,7 @@ export function CreateProfileModal({ isOpen, onClose, onCreated }: CreateProfile
             ) : (
               <div className="space-y-2">
                 {socialLinks.map((item) => (
-                  <div key={item.id} className="flex items-center gap-2">
+                  <div key={item.id} className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
                     <select
                       value={item.platform}
                       onChange={(e) => handleUpdateSocial(item.id, 'platform', e.target.value)}
@@ -277,19 +388,30 @@ export function CreateProfileModal({ isOpen, onClose, onCreated }: CreateProfile
                       ))}
                     </select>
 
+                    {item.platform === 'custom' && (
+                      <input
+                        type="text"
+                        required
+                        value={item.customName || ''}
+                        onChange={(e) => handleUpdateSocial(item.id, 'customName', e.target.value)}
+                        placeholder="Platform Name (e.g. Weverse)"
+                        className="w-full sm:w-44 px-3 py-2 bg-white border border-slate-300 rounded-xl text-slate-900 text-xs font-bold focus:outline-none focus:border-rose-600 shadow-xs"
+                      />
+                    )}
+
                     <input
                       type="url"
                       required
                       value={item.url}
                       onChange={(e) => handleUpdateSocial(item.id, 'url', e.target.value)}
-                      placeholder={`Enter ${item.platform} URL...`}
+                      placeholder={item.platform === 'custom' ? 'https://...' : `Enter ${item.platform} URL...`}
                       className="flex-1 px-3.5 py-2 bg-white border border-slate-300 rounded-xl text-slate-900 text-xs font-semibold focus:outline-none focus:border-rose-600 shadow-xs"
                     />
 
                     <button
                       type="button"
                       onClick={() => handleRemoveSocial(item.id)}
-                      className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-colors cursor-pointer shrink-0"
+                      className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-colors cursor-pointer shrink-0 self-end sm:self-center"
                       title="Remove social link"
                     >
                       <Trash2 className="w-4 h-4" />

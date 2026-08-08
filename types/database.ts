@@ -19,6 +19,7 @@ export interface Profile {
   instagram_url: string | null;
   x_url: string | null;
   threads_url: string | null;
+  custom_social_links?: Array<{ platform: string; url: string }> | null;
   seo_title: string | null;
   seo_description: string | null;
   status: ProfileStatus;

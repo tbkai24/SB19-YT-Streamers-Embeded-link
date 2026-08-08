@@ -128,7 +128,7 @@ export default function AppearanceAdminPage() {
             type="url"
             value={featuredVideoUrl}
             onChange={(e) => setFeaturedVideoUrl(e.target.value)}
-            placeholder="https://www.youtube.com/watch?v=SB19_LAWLESS_MV"
+            placeholder="https://www.youtube.com/watch?v=sb19mv"
             className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-slate-900 text-xs font-medium focus:outline-none focus:border-rose-500"
           />
 

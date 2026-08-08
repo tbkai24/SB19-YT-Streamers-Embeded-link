@@ -41,8 +41,16 @@ export async function fetchProfilesFromSupabase(): Promise<Profile[]> {
     const { data, error } = await Promise.race([queryPromise, timeoutPromise]);
 
     if (!error && data) {
-      saveProfiles(data as Profile[]);
-      return data as Profile[];
+      const localProfiles = getStoredProfiles();
+      const merged = (data as Profile[]).map(sp => {
+        const lp = localProfiles.find(p => p.id === sp.id);
+        return {
+          ...sp,
+          custom_social_links: sp.custom_social_links ?? lp?.custom_social_links ?? null,
+        };
+      });
+      saveProfiles(merged);
+      return merged;
     }
   } catch {
     // Ignore, fallback to stored profiles
@@ -51,6 +59,18 @@ export async function fetchProfilesFromSupabase(): Promise<Profile[]> {
 }
 
 export async function saveProfileToSupabase(profile: Partial<Profile>): Promise<{ success: boolean; error?: string; data?: Profile }> {
+  // Always update local storage first so local changes persist seamlessly
+  if (profile.id) {
+    const current = getStoredProfiles();
+    const idx = current.findIndex(p => p.id === profile.id);
+    if (idx >= 0) {
+      current[idx] = { ...current[idx], ...profile } as Profile;
+    } else {
+      current.unshift(profile as Profile);
+    }
+    saveProfiles(current);
+  }
+
   try {
     const supabase = createClient();
     const { data, error } = await supabase
@@ -61,6 +81,22 @@ export async function saveProfileToSupabase(profile: Partial<Profile>): Promise<
 
     if (error) {
       console.warn('Supabase saveProfile notice:', error.message || error);
+
+      // Fallback if custom_social_links column is not yet migrated in Supabase SQL schema
+      if (error.message?.includes('custom_social_links') || error.code === 'PGRST204') {
+        const { custom_social_links, ...safeProfile } = profile;
+        const retryRes = await supabase.from('profiles').upsert(safeProfile).select().maybeSingle();
+        if (!retryRes.error && retryRes.data) {
+          const resultData = { ...retryRes.data, custom_social_links: profile.custom_social_links } as Profile;
+          const current = getStoredProfiles();
+          const idx = current.findIndex(p => p.id === resultData.id);
+          if (idx >= 0) current[idx] = resultData;
+          else current.unshift(resultData);
+          saveProfiles(current);
+          return { success: true, data: resultData };
+        }
+      }
+
       const friendlyErr = error.code === '23505'
         ? 'A profile with this URL slug already exists.'
         : error.message || 'Unable to save profile to database.';
@@ -68,18 +104,22 @@ export async function saveProfileToSupabase(profile: Partial<Profile>): Promise<
     }
 
     if (data) {
+      const resultData = {
+        ...(data as Profile),
+        custom_social_links: data.custom_social_links ?? profile.custom_social_links ?? null,
+      };
       const all = getStoredProfiles();
-      const idx = all.findIndex(p => p.id === data.id);
-      if (idx >= 0) all[idx] = data as Profile;
-      else all.unshift(data as Profile);
+      const idx = all.findIndex(p => p.id === resultData.id);
+      if (idx >= 0) all[idx] = resultData;
+      else all.unshift(resultData);
       saveProfiles(all);
-      return { success: true, data: data as Profile };
+      return { success: true, data: resultData };
     }
   } catch (err: any) {
     console.warn('Supabase saveProfile notice:', err?.message || err);
     return { success: false, error: err?.message || 'Server error while saving profile.' };
   }
-  return { success: false, error: 'Database save failed.' };
+  return { success: true };
 }
 
 // 2. ARTICLES

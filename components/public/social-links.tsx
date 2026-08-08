@@ -33,7 +33,7 @@ const XTwitterIcon = ({ className }: { className?: string }) => (
 );
 
 export function SocialLinks({ profile }: SocialLinksProps) {
-  const links = [
+  const standardLinks = [
     { key: 'website_url', label: 'Website', url: profile.website_url, icon: Globe },
     { key: 'youtube_url', label: 'YouTube', url: profile.youtube_url, icon: YoutubeIcon },
     { key: 'facebook_url', label: 'Facebook', url: profile.facebook_url, icon: FacebookIcon },
@@ -41,6 +41,15 @@ export function SocialLinks({ profile }: SocialLinksProps) {
     { key: 'x_url', label: 'X', url: profile.x_url, icon: XTwitterIcon },
     { key: 'threads_url', label: 'Threads', url: profile.threads_url, icon: MessageSquare },
   ].filter(link => Boolean(link.url));
+
+  const customLinks = (profile.custom_social_links || []).map((c, idx) => ({
+    key: `custom-${idx}`,
+    label: c.platform || 'Social Link',
+    url: c.url,
+    icon: Globe,
+  }));
+
+  const links = [...standardLinks, ...customLinks];
 
   if (links.length === 0) return null;
 
