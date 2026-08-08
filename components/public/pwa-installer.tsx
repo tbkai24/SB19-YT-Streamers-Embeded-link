@@ -62,6 +62,8 @@ export function PwaInstaller() {
     const handleAppInstalled = () => {
       setShowInstallBanner(false);
       localStorage.setItem('sb19_pwa_installed', 'true');
+      // Automatically request notification permissions upon app installation
+      handleEnableNotifications();
     };
 
     // 4. Realtime Broadcast Push Listener for mobile devices
@@ -106,17 +108,20 @@ export function PwaInstaller() {
     };
   }, []);
 
-  // Auto-close banner after 4 seconds so it does not stay annoying
+  // Auto-close banner after 10 seconds as requested by user
   useEffect(() => {
     if (showInstallBanner) {
       const timer = setTimeout(() => {
         setShowInstallBanner(false);
-      }, 4000);
+      }, 10000);
       return () => clearTimeout(timer);
     }
   }, [showInstallBanner]);
 
   const handleInstallClick = async () => {
+    // Automatically trigger notification permission prompt
+    handleEnableNotifications();
+
     if (deferredPrompt) {
       try {
         deferredPrompt.prompt();
@@ -151,7 +156,7 @@ export function PwaInstaller() {
           const reg = await navigator.serviceWorker.ready;
           let sub = await reg.pushManager.getSubscription();
 
-          const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || 'BIMVjpq6r1EPxIp8i7ZomnsXLQNyOyXYQsH3lcTbgcnRFEqh9qPTH_VrBPiUf9jLfP_7IfWqdo8TqNaLa-kp3h4';
+          const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || 'BDyUoM5OfcS_tNX4oRESHQhpvRAJJ8xhOiFYaAm16o4EJ7YE5yV1d7_2lftzyegd8Bq7kLzeN4p7AGcc8k2uSR4';
 
           if (!sub && vapidPublicKey) {
             try {

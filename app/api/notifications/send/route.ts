@@ -4,8 +4,8 @@ import webpush from 'web-push';
 
 const BRAND_LOGO_URL = '/assets/ytslogo.jpg';
 
-const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || 'BIMVjpq6r1EPxIp8i7ZomnsXLQNyOyXYQsH3lcTbgcnRFEqh9qPTH_VrBPiUf9jLfP_7IfWqdo8TqNaLa-kp3h4';
-const vapidPrivateKey = process.env.VAPID_PRIVATE_KEY || 'R960np6AWE16ixaG9wkx8mBqgrzHbcedtkoFv3ztcEU';
+const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || 'BDyUoM5OfcS_tNX4oRESHQhpvRAJJ8xhOiFYaAm16o4EJ7YE5yV1d7_2lftzyegd8Bq7kLzeN4p7AGcc8k2uSR4';
+const vapidPrivateKey = process.env.VAPID_PRIVATE_KEY || 'qimf4jwRk4IcAfK0-KbuyYzm_ixhrg4aqJDwwZfg9Hc';
 const vapidSubject = process.env.VAPID_SUBJECT || 'mailto:admin@sb19streaminghub.com';
 
 webpush.setVapidDetails(vapidSubject, vapidPublicKey, vapidPrivateKey);
