@@ -43,16 +43,21 @@ export function PwaInstaller() {
   }, []);
 
   const handleInstallClick = async () => {
-    if (!deferredPrompt) {
-      setShowTutorialModal(true);
-      return;
+    if (deferredPrompt) {
+      try {
+        deferredPrompt.prompt();
+        const { outcome } = await deferredPrompt.userChoice;
+        if (outcome === 'accepted') {
+          setShowInstallBanner(false);
+        }
+        setDeferredPrompt(null);
+        return;
+      } catch {
+        // Fallback to tutorial
+      }
     }
-    deferredPrompt.prompt();
-    const { outcome } = await deferredPrompt.userChoice;
-    if (outcome === 'accepted') {
-      setShowInstallBanner(false);
-    }
-    setDeferredPrompt(null);
+    // Show step-by-step guide for iOS Safari, Firefox, or Chrome
+    setShowTutorialModal(true);
   };
 
   const handleEnableNotifications = async () => {
@@ -97,63 +102,61 @@ export function PwaInstaller() {
   return (
     <>
       {/* Floating PWA Install & Push Notification Banner */}
-      {(showInstallBanner || notifPermission !== 'granted') && (
-        <div className="fixed bottom-4 left-4 right-4 sm:left-auto sm:right-6 sm:max-w-md z-50 animate-in fade-in slide-in-from-bottom-4 duration-300">
-          <div className="p-4 rounded-2xl bg-slate-900/95 backdrop-blur-md text-white border border-slate-700/60 shadow-2xl relative overflow-hidden flex flex-col gap-3">
-            {/* Subtle Red Accent Glow */}
-            <div className="absolute -top-12 -right-12 w-28 h-28 bg-rose-600/30 rounded-full blur-2xl pointer-events-none" />
+      <div className="fixed bottom-4 left-4 right-4 sm:left-auto sm:right-6 sm:max-w-md z-50 animate-in fade-in slide-in-from-bottom-4 duration-300">
+        <div className="p-4 rounded-2xl bg-slate-900/95 backdrop-blur-md text-white border border-slate-700/60 shadow-2xl relative overflow-hidden flex flex-col gap-3">
+          {/* Subtle Red Accent Glow */}
+          <div className="absolute -top-12 -right-12 w-28 h-28 bg-rose-600/30 rounded-full blur-2xl pointer-events-none" />
 
-            <div className="flex items-start justify-between gap-3">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-rose-600 to-amber-500 flex items-center justify-center text-white shrink-0 shadow-md">
-                  <Smartphone className="w-5 h-5" />
-                </div>
-                <div>
-                  <h4 className="text-xs font-black uppercase tracking-wider text-rose-400">Install SB19 Stream Hub</h4>
-                  <p className="text-xs font-medium text-slate-300 mt-0.5 leading-snug">
-                    Install on your Phone & Laptop for 1-click access & Push Notifications!
-                  </p>
-                </div>
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-rose-600 to-amber-500 flex items-center justify-center text-white shrink-0 shadow-md">
+                <Smartphone className="w-5 h-5" />
               </div>
-              <button
-                onClick={dismissBanner}
-                className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
-              >
-                <X className="w-4 h-4" />
-              </button>
+              <div>
+                <h4 className="text-xs font-black uppercase tracking-wider text-rose-400">Install SB19 Stream Hub</h4>
+                <p className="text-xs font-medium text-slate-300 mt-0.5 leading-snug">
+                  Install on your Phone & Laptop for 1-click access & Push Notifications!
+                </p>
+              </div>
             </div>
-
-            <div className="flex items-center gap-2 pt-1">
-              <button
-                onClick={handleInstallClick}
-                className="flex-1 px-3 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold flex items-center justify-center gap-1.5 transition-transform active:scale-95 shadow-md cursor-pointer"
-              >
-                <Download className="w-3.5 h-3.5" />
-                <span>{deferredPrompt ? 'Install App' : 'How to Install'}</span>
-              </button>
-
-              {notifPermission !== 'granted' && (
-                <button
-                  onClick={handleEnableNotifications}
-                  disabled={isSubmittingNotif}
-                  className="flex-1 px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-white border border-slate-700 text-xs font-bold flex items-center justify-center gap-1.5 transition-colors disabled:opacity-50 cursor-pointer"
-                >
-                  <Bell className="w-3.5 h-3.5 text-rose-400" />
-                  <span>{notifSuccess ? 'Enabled!' : 'Enable Notifications'}</span>
-                </button>
-              )}
-            </div>
-
             <button
-              onClick={() => setShowTutorialModal(true)}
-              className="text-[11px] font-semibold text-slate-400 hover:text-rose-400 flex items-center justify-center gap-1 transition-colors pt-0.5"
+              onClick={dismissBanner}
+              className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
             >
-              <HelpCircle className="w-3 h-3 text-rose-400" />
-              <span>1-Click Installation & Push Notification Guide</span>
+              <X className="w-4 h-4" />
             </button>
           </div>
+
+          <div className="flex items-center gap-2 pt-1">
+            <button
+              onClick={handleInstallClick}
+              className="flex-1 px-3 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-extrabold flex items-center justify-center gap-1.5 transition-transform active:scale-95 shadow-md cursor-pointer"
+            >
+              <Download className="w-3.5 h-3.5" />
+              <span>Install App</span>
+            </button>
+
+            {notifPermission !== 'granted' && (
+              <button
+                onClick={handleEnableNotifications}
+                disabled={isSubmittingNotif}
+                className="flex-1 px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-white border border-slate-700 text-xs font-bold flex items-center justify-center gap-1.5 transition-colors disabled:opacity-50 cursor-pointer"
+              >
+                <Bell className="w-3.5 h-3.5 text-rose-400" />
+                <span>{notifSuccess ? 'Enabled!' : 'Enable Notifications'}</span>
+              </button>
+            )}
+          </div>
+
+          <button
+            onClick={() => setShowTutorialModal(true)}
+            className="text-[11px] font-semibold text-slate-400 hover:text-rose-400 flex items-center justify-center gap-1 transition-colors pt-0.5"
+          >
+            <HelpCircle className="w-3 h-3 text-rose-400" />
+            <span>1-Click Installation & Push Notification Guide</span>
+          </button>
         </div>
-      )}
+      </div>
 
       {/* Quick Installation Tutorial Modal */}
       {showTutorialModal && (
