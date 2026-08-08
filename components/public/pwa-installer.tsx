@@ -20,7 +20,6 @@ export function PwaInstaller() {
         (navigator as any).standalone === true;
       if (isStandalone) {
         setShowInstallBanner(false);
-        return;
       }
     }
 
