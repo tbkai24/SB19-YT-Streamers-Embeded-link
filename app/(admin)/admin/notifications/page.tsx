@@ -77,10 +77,13 @@ export default function NotificationsAdminPage() {
 
       if (perm !== 'granted') return;
 
-      const logoUrl = '/assets/ytslogo.jpg';
-      const options: NotificationOptions = {
+      const logoUrl = window.location.origin + '/assets/ytslogo.jpg';
+      const options: NotificationOptions & { renotify?: boolean } = {
         body: notifMessage,
         icon: logoUrl,
+        badge: logoUrl,
+        tag: 'sb19-notif-' + Date.now(),
+        renotify: true,
         data: { url: notifUrl || '/' },
       };
 
@@ -131,6 +134,25 @@ export default function NotificationsAdminPage() {
     showToast('Test push notification sent to your device!');
   };
 
+  const broadcastToAllDevices = (notifTitle: string, notifMessage: string, notifUrl: string) => {
+    triggerDeviceNotification(notifTitle, notifMessage, notifUrl);
+
+    if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
+      try {
+        const bc = new BroadcastChannel('sb19_push_channel');
+        bc.postMessage({
+          type: 'TRIGGER_PUSH',
+          title: notifTitle,
+          message: notifMessage,
+          url: notifUrl,
+        });
+        setTimeout(() => bc.close(), 1000);
+      } catch {
+        // Ignore
+      }
+    }
+  };
+
   const handleSendBroadcast = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim() || !message.trim()) {
@@ -158,8 +180,8 @@ export default function NotificationsAdminPage() {
 
       const data = await res.json();
       if (data.success) {
-        // Trigger OS Push Notification pop-up on current device
-        triggerDeviceNotification(currentTitle, currentMessage, currentUrl);
+        // Trigger OS Push Notification pop-up on all connected devices
+        broadcastToAllDevices(currentTitle, currentMessage, currentUrl);
 
         showToast(`Broadcast sent to ${data.sentToSubscribers || subscriberCount} devices!`);
         setTitle('');
@@ -197,8 +219,8 @@ export default function NotificationsAdminPage() {
 
       const data = await res.json();
       if (data.success) {
-        // Trigger OS Push Notification pop-up on current device
-        triggerDeviceNotification(item.title, item.message, item.url || '/');
+        // Trigger OS Push Notification pop-up on all connected devices
+        broadcastToAllDevices(item.title, item.message, item.url || '/');
 
         showToast(`Re-broadcast sent to ${data.sentToSubscribers || subscriberCount} devices!`);
         loadData();

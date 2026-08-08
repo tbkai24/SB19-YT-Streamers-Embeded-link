@@ -1,14 +1,13 @@
-// SB19 Stream Hub Service Worker for PWA & Push Notifications
+// SB19 Streaming Hub Service Worker for PWA & Push Notifications
 
-const CACHE_NAME = 'sb19-hub-cache-v1';
-const BRAND_LOGO_URL = '/assets/ytslogo.jpg';
+const CACHE_NAME = 'sb19-streaming-hub-v2';
 
 self.addEventListener('install', (event) => {
   self.skipWaiting();
 });
 
 self.addEventListener('activate', (event) => {
-  event.waitUntil(clients.claim());
+  event.waitUntil(self.clients.claim());
 });
 
 // Handle Push Event from Web Push / Device Broadcast
@@ -18,41 +17,71 @@ self.addEventListener('push', (event) => {
     try {
       data = event.data.json();
     } catch {
-      data = { title: 'SB19 Stream Hub', message: event.data.text() };
+      data = { title: 'SB19 Streaming Hub', message: event.data.text() };
     }
   }
 
-  const title = data.title || 'SB19 Stream Hub';
+  const notifTitle = data.title || 'SB19 Streaming Hub';
+  const notifMessage = data.message || data.body || 'New update available on SB19 Streaming Hub!';
+  const origin = self.location.origin;
+  const logoUrl = origin + '/assets/ytslogo.jpg';
+
   const options = {
-    body: data.message || 'New update available on SB19 Stream Hub!',
-    icon: data.icon || BRAND_LOGO_URL,
-    badge: BRAND_LOGO_URL,
-    image: data.image || undefined,
+    body: notifMessage,
+    icon: logoUrl,
+    badge: logoUrl,
+    tag: 'sb19-push-' + (data.id || Date.now()),
+    renotify: true,
     data: {
       url: data.url || '/',
       timestamp: Date.now(),
     },
-    vibrate: [100, 50, 100],
-    requireInteraction: true,
   };
 
-  event.waitUntil(self.registration.showNotification(title, options));
+  event.waitUntil(self.registration.showNotification(notifTitle, options));
 });
 
-// Handle Notification Click - Immediately navigates to target URL (e.g. /profile/sb19lawlessmvembeds)
+// Handle Direct Message from Client/Admin Broadcast
+self.addEventListener('message', (event) => {
+  if (event.data && (event.data.type === 'TRIGGER_PUSH' || event.data.action === 'showNotification')) {
+    const { title, message, url } = event.data;
+    const origin = self.location.origin;
+    const logoUrl = origin + '/assets/ytslogo.jpg';
+
+    const notifTitle = title || 'SB19 Streaming Hub';
+    const notifMessage = message || 'New release update available!';
+
+    const options = {
+      body: notifMessage,
+      icon: logoUrl,
+      badge: logoUrl,
+      tag: 'sb19-push-' + Date.now(),
+      renotify: true,
+      data: {
+        url: url || '/',
+        timestamp: Date.now(),
+      },
+    };
+
+    event.waitUntil(self.registration.showNotification(notifTitle, options));
+  }
+});
+
+// Handle Notification Click - Navigates directly to target URL
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
   const targetUrl = event.notification.data?.url || '/';
 
   event.waitUntil(
-    clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
+      const fullTargetUrl = new URL(targetUrl, self.location.origin).href;
       for (const client of clientList) {
-        if (client.url === targetUrl && 'focus' in client) {
+        if (client.url === fullTargetUrl && 'focus' in client) {
           return client.focus();
         }
       }
-      if (clients.openWindow) {
-        return clients.openWindow(targetUrl);
+      if (self.clients.openWindow) {
+        return self.clients.openWindow(fullTargetUrl);
       }
     })
   );

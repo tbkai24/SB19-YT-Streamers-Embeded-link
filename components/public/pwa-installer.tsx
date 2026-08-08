@@ -64,12 +64,45 @@ export function PwaInstaller() {
       localStorage.setItem('sb19_pwa_installed', 'true');
     };
 
+    // 4. Realtime Broadcast Push Listener for mobile devices
+    let pushChannel: BroadcastChannel | null = null;
+    if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
+      try {
+        pushChannel = new BroadcastChannel('sb19_push_channel');
+        pushChannel.onmessage = async (event) => {
+          if (event.data && event.data.type === 'TRIGGER_PUSH') {
+            const { title, message, url } = event.data;
+            if (Notification.permission === 'granted' && 'serviceWorker' in navigator) {
+              try {
+                const reg = await navigator.serviceWorker.ready;
+                const logoUrl = window.location.origin + '/assets/ytslogo.jpg';
+                const options: NotificationOptions & { renotify?: boolean } = {
+                  body: message || 'New release update available!',
+                  icon: logoUrl,
+                  badge: logoUrl,
+                  tag: 'sb19-push-' + Date.now(),
+                  renotify: true,
+                  data: { url: url || '/' },
+                };
+                await reg.showNotification(title || 'SB19 Streaming Hub', options);
+              } catch {
+                // Ignore
+              }
+            }
+          }
+        };
+      } catch {
+        // Ignore
+      }
+    }
+
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
     window.addEventListener('appinstalled', handleAppInstalled);
 
     return () => {
       window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
       window.removeEventListener('appinstalled', handleAppInstalled);
+      if (pushChannel) pushChannel.close();
     };
   }, []);
 
