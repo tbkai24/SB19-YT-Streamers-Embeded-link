@@ -4,6 +4,7 @@ import React, { useState, useEffect, use } from 'react';
 import Link from 'next/link';
 import { Profile, Article } from '@/types/database';
 import { getStoredProfiles, getStoredArticles, fetchProfilesFromSupabase, fetchArticlesFromSupabase, recordProfileView } from '@/lib/data-store';
+import { createClient } from '@/lib/supabase/client';
 import { extractYouTubeId } from '@/lib/url-normalizer';
 import { SocialLinks } from '@/components/public/social-links';
 import { ArticleCard } from '@/components/public/article-card';
@@ -41,7 +42,14 @@ export default function PublicProfilePage({ params }: ProfilePageProps) {
     // 2. Async Supabase sync check
     try {
       const fetchedProfiles = await fetchProfilesFromSupabase();
-      const supabaseMatch = fetchedProfiles.find(p => p.slug.toLowerCase() === slug);
+      let supabaseMatch = fetchedProfiles.find(p => p.slug.toLowerCase() === slug);
+
+      if (!supabaseMatch) {
+        const supabase = createClient();
+        const { data: directProfile } = await supabase.from('profiles').select('*').ilike('slug', slug).maybeSingle();
+        if (directProfile) supabaseMatch = directProfile as Profile;
+      }
+
       if (supabaseMatch) {
         setProfile(supabaseMatch);
         recordProfileView(supabaseMatch.id);

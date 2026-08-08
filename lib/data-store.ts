@@ -35,18 +35,25 @@ export function saveProfiles(profiles: Profile[]) {
 export async function fetchProfilesFromSupabase(): Promise<Profile[]> {
   try {
     const supabase = createClient();
-    const queryPromise = supabase
+    let queryPromise = supabase
       .from('profiles')
       .select('*')
       .order('display_order', { ascending: true });
 
     const timeoutPromise = new Promise<{ data: any; error: any }>(resolve =>
-      setTimeout(() => resolve({ data: null, error: new Error('Timeout') }), 1200)
+      setTimeout(() => resolve({ data: null, error: new Error('Timeout') }), 6000)
     );
 
-    const { data, error } = await Promise.race([queryPromise, timeoutPromise]);
+    let { data, error } = await Promise.race([queryPromise, timeoutPromise]);
 
-    if (!error && data) {
+    // Fallback if ordering by display_order fails due to missing column
+    if (error && error.message !== 'Timeout') {
+      const fallbackRes = await supabase.from('profiles').select('*').order('created_at', { ascending: false });
+      data = fallbackRes.data;
+      error = fallbackRes.error;
+    }
+
+    if (!error && data && data.length > 0) {
       const localProfiles = getStoredProfiles();
       const merged = (data as Profile[]).map((sp, idx) => {
         const lp = localProfiles.find(p => p.id === sp.id);
@@ -156,16 +163,22 @@ export function saveArticles(articles: Article[]) {
 export async function fetchArticlesFromSupabase(): Promise<Article[]> {
   try {
     const supabase = createClient();
-    const queryPromise = supabase
+    let queryPromise = supabase
       .from('articles')
       .select('*')
       .order('display_order', { ascending: true });
 
     const timeoutPromise = new Promise<{ data: any; error: any }>(resolve =>
-      setTimeout(() => resolve({ data: null, error: new Error('Timeout') }), 1200)
+      setTimeout(() => resolve({ data: null, error: new Error('Timeout') }), 6000)
     );
 
-    const { data, error } = await Promise.race([queryPromise, timeoutPromise]);
+    let { data, error } = await Promise.race([queryPromise, timeoutPromise]);
+
+    if (error && error.message !== 'Timeout') {
+      const fallbackRes = await supabase.from('articles').select('*').order('created_at', { ascending: false });
+      data = fallbackRes.data;
+      error = fallbackRes.error;
+    }
 
     if (!error && data) {
       saveArticles(data as Article[]);
@@ -278,7 +291,7 @@ export async function fetchSubmissionsFromSupabase(): Promise<ArticleSubmission[
       .order('created_at', { ascending: false });
 
     const timeoutPromise = new Promise<{ data: any; error: any }>(resolve =>
-      setTimeout(() => resolve({ data: null, error: new Error('Timeout') }), 1200)
+      setTimeout(() => resolve({ data: null, error: new Error('Timeout') }), 6000)
     );
 
     const { data, error } = await Promise.race([queryPromise, timeoutPromise]);
