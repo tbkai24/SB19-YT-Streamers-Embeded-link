@@ -29,10 +29,15 @@ export function PwaInstaller() {
       setNotifPermission(Notification.permission);
     }
 
-    // 2. Register Service Worker
+    // 2. Register Service Worker & Auto Sync Subscription with Database
     if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
       navigator.serviceWorker
         .register('/sw.js')
+        .then(() => {
+          if (Notification.permission === 'granted') {
+            handleEnableNotifications();
+          }
+        })
         .catch((err) => console.log('SW Registration failed:', err));
     }
 
