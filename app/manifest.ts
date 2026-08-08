@@ -4,8 +4,8 @@ export default function manifest(): MetadataRoute.Manifest {
   const logoUrl = 'https://res.cloudinary.com/wkmmjpzb/image/upload/f_auto,q_auto/JlaG7Bz8_400x400_pvb6mo.jpg';
 
   return {
-    name: 'SB19 Stream Hub',
-    short_name: 'SB19 Hub',
+    name: 'SB19 Streaming Hub',
+    short_name: 'SB19 Streaming Hub',
     description: 'Official SB19 Music Streaming Hub, Release Links & Fan Articles Tracker',
     start_url: '/',
     id: '/',

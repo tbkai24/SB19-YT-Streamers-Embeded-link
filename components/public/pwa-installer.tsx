@@ -113,7 +113,7 @@ export function PwaInstaller() {
                 <Smartphone className="w-5 h-5" />
               </div>
               <div>
-                <h4 className="text-xs font-black uppercase tracking-wider text-rose-400">Install SB19 Stream Hub</h4>
+                <h4 className="text-xs font-black uppercase tracking-wider text-rose-400">Install SB19 Streaming Hub</h4>
                 <p className="text-xs font-medium text-slate-300 mt-0.5 leading-snug">
                   Install on your Phone & Laptop for 1-click access & Push Notifications!
                 </p>
@@ -172,7 +172,7 @@ export function PwaInstaller() {
                 </div>
                 <div>
                   <h3 className="text-sm font-black uppercase tracking-wider text-white">App Installation & Push Guide</h3>
-                  <p className="text-xs text-slate-400 font-medium">Install SB19 Stream Hub on Phone or Laptop in 1 click!</p>
+                  <p className="text-xs text-slate-400 font-medium">Install SB19 Streaming Hub on Phone or Laptop in 1 click!</p>
                 </div>
               </div>
               <button
@@ -247,7 +247,7 @@ export function PwaInstaller() {
                         <div>
                           <h4 className="text-xs font-bold text-white">Tap &apos;Install and create shortcut&apos;, &apos;Install app&apos;, or &apos;Add to Home screen&apos;</h4>
                           <p className="text-xs text-slate-400 font-medium mt-0.5">
-                            Select <strong>Install and create shortcut</strong>, <strong>Install app</strong>, or <strong>Add to Home screen</strong>. SB19 Hub will be saved as a native app on your phone!
+                            Select <strong>Install and create shortcut</strong>, <strong>Install app</strong>, or <strong>Add to Home screen</strong>. SB19 Streaming Hub will be saved as a native app on your phone!
                           </p>
                         </div>
                       </div>
@@ -307,7 +307,7 @@ export function PwaInstaller() {
                     <div>
                       <h4 className="text-xs font-bold text-white">Open App & Allow Notifications</h4>
                       <p className="text-xs text-slate-400 font-medium mt-0.5">
-                        Open <strong>SB19 Hub</strong> from your iPhone Home Screen and tap <strong>Allow Notifications</strong>.
+                        Open <strong>SB19 Streaming Hub</strong> from your iPhone Home Screen and tap <strong>Allow Notifications</strong>.
                       </p>
                     </div>
                   </div>
