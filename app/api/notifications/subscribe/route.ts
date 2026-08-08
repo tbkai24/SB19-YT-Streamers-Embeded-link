@@ -3,7 +3,7 @@ import { createClient } from '@/lib/supabase/client';
 
 export async function POST(request: Request) {
   try {
-    const { endpoint, keys, userAgent } = await request.json();
+    const { endpoint, subscription, keys, userAgent } = await request.json();
     if (!endpoint) {
       return NextResponse.json({ error: 'Endpoint is required' }, { status: 400 });
     }
@@ -13,7 +13,7 @@ export async function POST(request: Request) {
       .from('push_subscriptions')
       .upsert({
         endpoint,
-        keys: keys || null,
+        keys: keys || subscription?.keys || null,
         user_agent: userAgent || null,
         created_at: new Date().toISOString(),
       }, { onConflict: 'endpoint' })

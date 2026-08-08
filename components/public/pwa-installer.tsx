@@ -149,7 +149,33 @@ export function PwaInstaller() {
 
         if ('serviceWorker' in navigator) {
           const reg = await navigator.serviceWorker.ready;
-          const sub = await reg.pushManager.getSubscription();
+          let sub = await reg.pushManager.getSubscription();
+
+          const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || 'BIMVjpq6r1EPxIp8i7ZomnsXLQNyOyXYQsH3lcTbgcnRFEqh9qPTH_VrBPiUf9jLfP_7IfWqdo8TqNaLa-kp3h4';
+
+          if (!sub && vapidPublicKey) {
+            try {
+              const convertedKey = (base64String: string) => {
+                const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
+                const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+                const rawData = window.atob(base64);
+                const outputArray = new Uint8Array(rawData.length);
+                for (let i = 0; i < rawData.length; ++i) {
+                  outputArray[i] = rawData.charCodeAt(i);
+                }
+                return outputArray;
+              };
+
+              sub = await reg.pushManager.subscribe({
+                userVisibleOnly: true,
+                applicationServerKey: convertedKey(vapidPublicKey),
+              });
+            } catch (subErr) {
+              console.log('Push subscribe error:', subErr);
+            }
+          }
+
+          const subscriptionJSON = sub ? sub.toJSON() : null;
           const endpoint = sub ? sub.endpoint : `browser-${Date.now()}-${Math.random().toString(36).substring(2)}`;
 
           await fetch('/api/notifications/subscribe', {
@@ -157,6 +183,8 @@ export function PwaInstaller() {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               endpoint,
+              subscription: subscriptionJSON,
+              keys: subscriptionJSON?.keys || null,
               userAgent: navigator.userAgent,
             }),
           });
