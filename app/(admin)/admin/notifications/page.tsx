@@ -250,7 +250,7 @@ export default function NotificationsAdminPage() {
             <span>Push Notifications & Broadcasts</span>
           </h1>
           <p className="text-xs text-slate-500 font-medium mt-1">
-            Send instant push notifications to fans&apos; phones & laptops with the official SB19 logo.
+            Send instant push notifications to fans&apos; phones & laptops for new releases & reminders.
           </p>
         </div>
 
@@ -276,7 +276,7 @@ export default function NotificationsAdminPage() {
             <Sparkles className="w-4 h-4 text-rose-600" />
             <span>Create New Push Broadcast</span>
           </h2>
-          <span className="text-xs text-slate-400 font-medium">Includes official brand logo icon</span>
+          <span className="text-xs text-slate-400 font-medium">Direct release links & reminders broadcast</span>
         </div>
 
         <form onSubmit={handleSendBroadcast} className="space-y-4">

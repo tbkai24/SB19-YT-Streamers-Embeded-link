@@ -261,7 +261,7 @@ export function PwaInstaller() {
                     <div>
                       <h4 className="text-xs font-bold text-white">Enable Push Notifications</h4>
                       <p className="text-xs text-slate-400 font-medium mt-0.5">
-                        Tap <strong>Enable Notifications</strong> below and select <strong>Allow</strong> to receive instant alerts with the SB19 logo.
+                        Tap <strong>Enable Notifications</strong> below and select <strong>Allow</strong> to receive instant release alerts & streaming reminders.
                       </p>
                     </div>
                   </div>
@@ -338,7 +338,7 @@ export function PwaInstaller() {
                     <div>
                       <h4 className="text-xs font-bold text-white">Enable Device Notifications</h4>
                       <p className="text-xs text-slate-400 font-medium mt-0.5">
-                        Click <strong>Enable Notifications</strong> on the bottom banner to get alerts featuring the official SB19 logo!
+                        Click <strong>Enable Notifications</strong> on the bottom banner to get instant release alerts & streaming reminders!
                       </p>
                     </div>
                   </div>
