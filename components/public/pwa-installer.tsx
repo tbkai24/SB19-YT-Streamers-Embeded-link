@@ -36,11 +36,14 @@ export function PwaInstaller() {
         .catch((err) => console.log('SW Registration failed:', err));
     }
 
-    const isDismissed = localStorage.getItem('sb19_pwa_dismissed');
+    // Clear old permanent dismissal so testers/users receive the prompt
+    localStorage.removeItem('sb19_pwa_dismissed');
+
+    const isSessionDismissed = sessionStorage.getItem('sb19_pwa_session_dismissed');
     const isInstalled = localStorage.getItem('sb19_pwa_installed');
 
-    // Initially pop up banner if not dismissed & not installed
-    if (!isDismissed && !isInstalled) {
+    // Initially pop up banner if not dismissed in current session & not installed
+    if (!isSessionDismissed && !isInstalled) {
       setShowInstallBanner(true);
     }
 
@@ -51,8 +54,7 @@ export function PwaInstaller() {
       // If browser fires beforeinstallprompt again, user uninstalled or does not have app installed
       localStorage.removeItem('sb19_pwa_installed');
 
-      const isDismissed = localStorage.getItem('sb19_pwa_dismissed');
-      if (!isDismissed) {
+      if (!isSessionDismissed) {
         setShowInstallBanner(true);
       }
     };
@@ -136,7 +138,8 @@ export function PwaInstaller() {
 
   const dismissBanner = () => {
     setShowInstallBanner(false);
-    localStorage.setItem('sb19_pwa_dismissed', 'true');
+    sessionStorage.setItem('sb19_pwa_session_dismissed', 'true');
+    localStorage.removeItem('sb19_pwa_dismissed');
   };
 
   return (
