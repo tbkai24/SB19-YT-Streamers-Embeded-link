@@ -218,26 +218,50 @@ export function PwaInstaller() {
             <div className="space-y-4 pt-1">
               {activeTab === 'android' && (
                 <div className="space-y-3">
-                  <div className="p-3.5 rounded-2xl bg-slate-800/50 border border-slate-700/50 flex items-start gap-3">
-                    <div className="w-7 h-7 rounded-lg bg-rose-600 text-white font-extrabold text-xs flex items-center justify-center shrink-0">
-                      1
-                    </div>
-                    <div>
-                      <h4 className="text-xs font-bold text-white">Tap &apos;Install App&apos; Button</h4>
-                      <p className="text-xs text-slate-400 font-medium mt-0.5">
-                        Tap the red <strong>Install App</strong> button on the floating banner at the bottom of your screen.
-                      </p>
-                    </div>
-                  </div>
+                  {deferredPrompt ? (
+                    <button
+                      onClick={handleInstallClick}
+                      className="w-full py-3 rounded-2xl bg-rose-600 hover:bg-rose-500 text-white font-extrabold text-xs flex items-center justify-center gap-2 shadow-lg transition-transform active:scale-95 cursor-pointer"
+                    >
+                      <Download className="w-4 h-4" />
+                      <span>Trigger 1-Click Android Install Prompt</span>
+                    </button>
+                  ) : (
+                    <>
+                      <div className="p-3.5 rounded-2xl bg-slate-800/50 border border-slate-700/50 flex items-start gap-3">
+                        <div className="w-7 h-7 rounded-lg bg-rose-600 text-white font-extrabold text-xs flex items-center justify-center shrink-0">
+                          1
+                        </div>
+                        <div>
+                          <h4 className="text-xs font-bold text-white">Open Browser Menu (Chrome / Firefox)</h4>
+                          <p className="text-xs text-slate-400 font-medium mt-0.5">
+                            Tap the <strong>3 Dots (Chrome)</strong> or <strong>3 Lines (Firefox)</strong> menu icon at the top right of your browser.
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="p-3.5 rounded-2xl bg-slate-800/50 border border-slate-700/50 flex items-start gap-3">
+                        <div className="w-7 h-7 rounded-lg bg-rose-600 text-white font-extrabold text-xs flex items-center justify-center shrink-0">
+                          2
+                        </div>
+                        <div>
+                          <h4 className="text-xs font-bold text-white">Tap &apos;Install app&apos; or &apos;Add to Home screen&apos;</h4>
+                          <p className="text-xs text-slate-400 font-medium mt-0.5">
+                            Select <strong>Install app</strong> or <strong>Add to Home screen</strong>. SB19 Hub will be installed as a native app on your phone!
+                          </p>
+                        </div>
+                      </div>
+                    </>
+                  )}
 
                   <div className="p-3.5 rounded-2xl bg-slate-800/50 border border-slate-700/50 flex items-start gap-3">
                     <div className="w-7 h-7 rounded-lg bg-rose-600 text-white font-extrabold text-xs flex items-center justify-center shrink-0">
-                      2
+                      🔔
                     </div>
                     <div>
                       <h4 className="text-xs font-bold text-white">Enable Push Notifications</h4>
                       <p className="text-xs text-slate-400 font-medium mt-0.5">
-                        Tap <strong>Enable Notifications</strong> and select <strong>Allow</strong> when Chrome prompts you.
+                        Tap <strong>Enable Notifications</strong> below and select <strong>Allow</strong> to receive instant alerts with the SB19 logo.
                       </p>
                     </div>
                   </div>
