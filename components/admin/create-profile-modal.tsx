@@ -128,9 +128,6 @@ export function CreateProfileModal({ isOpen, onClose, onCreated }: CreateProfile
         url: s.url.trim(),
       }));
 
-    const finalFeaturedUrl = featuredVideoUrl.trim() || null;
-    const finalYoutubeUrl = getUrl('youtube') || finalFeaturedUrl || null;
-
     const newProfile: Profile = {
       id: generateUUID(),
       title: title.trim(),
@@ -139,10 +136,10 @@ export function CreateProfileModal({ isOpen, onClose, onCreated }: CreateProfile
       cover_image: coverImage.trim() || null,
       profile_image: profileImage.trim() || null,
       accent_color: accentColor,
-      featured_video_url: finalFeaturedUrl,
+      featured_video_url: featuredVideoUrl.trim() || null,
       theme: 'dark',
       website_url: getUrl('website'),
-      youtube_url: finalYoutubeUrl,
+      youtube_url: getUrl('youtube'),
       facebook_url: getUrl('facebook'),
       instagram_url: getUrl('instagram'),
       x_url: getUrl('x'),

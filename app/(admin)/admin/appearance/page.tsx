@@ -34,6 +34,7 @@ export default function AppearanceAdminPage() {
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     const allProfiles = getStoredProfiles();
+    const finalVideoUrl = featuredVideoUrl.trim() || null;
     const updatedProfile = {
       ...activeProfile,
       title: title.trim(),
@@ -42,7 +43,7 @@ export default function AppearanceAdminPage() {
       profile_image: profileImage.trim() || null,
       accent_color: accentColor,
       featured_video_url: featuredVideoUrl.trim() || null,
-      youtube_url: featuredVideoUrl.trim() || activeProfile.youtube_url || null,
+      youtube_url: activeProfile.youtube_url || null,
       updated_at: new Date().toISOString(),
     };
 
