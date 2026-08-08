@@ -6,10 +6,18 @@ export const metadata: Metadata = {
   title: 'SB19 Streaming Hub - Verified Articles & Releases',
   description: 'Centralized directory of streaming articles for SB19 songs, albums, and campaigns created by A’TIN for A’TIN.',
   manifest: '/manifest.webmanifest',
+  icons: {
+    icon: '/icon-192.jpg',
+    apple: '/apple-touch-icon.jpg',
+  },
   appleWebApp: {
     capable: true,
     statusBarStyle: 'black-translucent',
     title: 'SB19 Streaming Hub',
+  },
+  other: {
+    'mobile-web-app-capable': 'yes',
+    'application-name': 'SB19 Streaming Hub',
   },
   openGraph: {
     title: 'SB19 Streaming Hub',
