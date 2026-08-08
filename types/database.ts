@@ -109,3 +109,26 @@ export interface ExtractedMetadata {
   thumbnail: string;
   favicon: string;
 }
+
+export interface NotificationItem {
+  id: string;
+  profile_id?: string | null;
+  title: string;
+  message: string;
+  type: 'announcement' | 'reminder' | 'release' | 'stream_goal';
+  url: string;
+  status: 'draft' | 'sent' | 'scheduled';
+  sent_at?: string | null;
+  created_at: string;
+}
+
+export interface PushSubscriptionItem {
+  id: string;
+  endpoint: string;
+  keys?: {
+    p256dh?: string;
+    auth?: string;
+  } | null;
+  user_agent?: string | null;
+  created_at: string;
+}

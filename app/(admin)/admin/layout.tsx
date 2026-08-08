@@ -27,6 +27,7 @@ import {
   LogOut,
   ArrowLeft,
   Loader2,
+  Bell,
 } from 'lucide-react';
 
 interface AdminWorkspaceContextType {
@@ -180,6 +181,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     { label: 'Overview', href: '/admin', icon: LayoutDashboard },
     { label: 'Articles', href: '/admin/articles', icon: FileText, badge: articleCount },
     { label: 'Submissions', href: '/admin/submissions', icon: Clock, badge: pendingCount, highlight: pendingCount > 0 },
+    { label: 'Push Notifications', href: '/admin/notifications', icon: Bell },
     { label: 'Appearance', href: '/admin/appearance', icon: Palette },
     { label: 'Official Social Links', href: '/admin/social', icon: Share2 },
     { label: 'SEO & Analytics', href: '/admin/analytics', icon: BarChart3 },

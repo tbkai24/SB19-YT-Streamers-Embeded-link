@@ -1,4 +1,4 @@
-import { Profile, Article, ArticleSubmission, ExtractedMetadata, AnalyticsEvent, DailyTrafficStat } from '@/types/database';
+import { Profile, Article, ArticleSubmission, ExtractedMetadata, AnalyticsEvent, DailyTrafficStat, NotificationItem } from '@/types/database';
 import { createClient } from '@/lib/supabase/client';
 import { normalizeUrl, isDuplicateUrl } from './url-normalizer';
 import { detectDeviceType, detectCountryCode, normalizeReferrer, getClientIp } from './device-detector';
@@ -8,6 +8,7 @@ const LOCAL_STORAGE_KEY_ARTICLES = 'sb19_hub_articles_v6';
 const LOCAL_STORAGE_KEY_SUBMISSIONS = 'sb19_hub_submissions_v6';
 const LOCAL_STORAGE_KEY_ANALYTICS = 'sb19_hub_analytics_events_v6';
 const LOCAL_STORAGE_KEY_DAILY_TRAFFIC = 'sb19_hub_daily_traffic_v6';
+const LOCAL_STORAGE_KEY_NOTIFICATIONS = 'sb19_hub_notifications_v6';
 
 // 1. PROFILES
 export function getStoredProfiles(): Profile[] {
@@ -692,4 +693,40 @@ export async function recordArticleClick(articleId: string) {
       // Ignore
     }
   }
+}
+
+// 6. NOTIFICATIONS & BROADCASTS
+export function getStoredNotifications(): NotificationItem[] {
+  if (typeof window === 'undefined') return [];
+  try {
+    const raw = localStorage.getItem(LOCAL_STORAGE_KEY_NOTIFICATIONS);
+    if (raw) return JSON.parse(raw);
+  } catch {
+    // Ignore
+  }
+  return [];
+}
+
+export function saveNotifications(notifications: NotificationItem[]) {
+  if (typeof window !== 'undefined') {
+    localStorage.setItem(LOCAL_STORAGE_KEY_NOTIFICATIONS, JSON.stringify(notifications));
+  }
+}
+
+export async function fetchNotificationsFromSupabase(): Promise<NotificationItem[]> {
+  try {
+    const supabase = createClient();
+    const { data, error } = await supabase
+      .from('notifications')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (!error && data) {
+      saveNotifications(data);
+      return data;
+    }
+  } catch {
+    // Ignore
+  }
+  return getStoredNotifications();
 }
