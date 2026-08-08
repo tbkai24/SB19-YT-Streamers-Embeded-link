@@ -35,30 +35,36 @@ function getDailyArticlePick(articles: Article[]): { article: Article; quote: st
   return { article, quote: decodeHtmlEntities(quote) };
 }
 
-function AdminArticleOfTheDayBanner({ articles, onEdit }: { articles: Article[]; onEdit: (art: Article) => void }) {
-  const dailyPick = getDailyArticlePick(articles);
-  const [displayQuote, setDisplayQuote] = useState<string>(dailyPick?.quote || '');
-  const [isTranslating, setIsTranslating] = useState<boolean>(false);
+function TranslatedText({ text, className = '' }: { text: string; className?: string }) {
+  const [displayText, setDisplayText] = useState<string>(decodeHtmlEntities(text));
 
   useEffect(() => {
-    if (!dailyPick?.quote) return;
-    const rawQuote = decodeHtmlEntities(dailyPick.quote);
-    setDisplayQuote(rawQuote);
+    if (!text) return;
+    const clean = decodeHtmlEntities(text);
+    setDisplayText(clean);
 
     let isCancelled = false;
-    setIsTranslating(true);
-    translateTextToEnglish(rawQuote).then((translated) => {
-      if (!isCancelled && translated) {
-        setDisplayQuote(translated);
-      }
-    }).finally(() => {
-      if (!isCancelled) setIsTranslating(false);
+    translateTextToEnglish(clean).then(translated => {
+      if (!isCancelled && translated) setDisplayText(translated);
     });
 
-    return () => {
-      isCancelled = true;
-    };
-  }, [dailyPick?.article.id, dailyPick?.quote]);
+    return () => { isCancelled = true; };
+  }, [text]);
+
+  return <span className={className}>{displayText}</span>;
+}
+
+function AdminArticleCardQuote({ quote }: { quote: string }) {
+  return (
+    <div className="mt-1.5 text-[11px] italic font-semibold text-amber-800 bg-amber-50 border border-amber-200/60 rounded-lg p-1.5 px-2.5 flex items-center gap-1.5">
+      <MessageSquare className="w-3 h-3 text-amber-600 shrink-0" />
+      <span className="truncate">&quot;<TranslatedText text={quote} />&quot;</span>
+    </div>
+  );
+}
+
+function AdminArticleOfTheDayBanner({ articles, onEdit }: { articles: Article[]; onEdit: (art: Article) => void }) {
+  const dailyPick = getDailyArticlePick(articles);
 
   if (!dailyPick) return null;
 
@@ -69,22 +75,14 @@ function AdminArticleOfTheDayBanner({ articles, onEdit }: { articles: Article[];
           <Sparkles className="w-3 h-3 text-white" />
           <span>Today&apos;s Article of the Day (Public Showcase)</span>
         </span>
-        <div className="flex items-center gap-3">
-          {isTranslating && (
-            <span className="text-[10px] text-amber-700/80 font-bold animate-pulse flex items-center gap-1">
-              <Globe className="w-3 h-3 text-amber-600" />
-              <span>Translating...</span>
-            </span>
-          )}
-          <button
-            type="button"
-            onClick={() => onEdit(dailyPick.article)}
-            className="text-[11px] font-bold text-amber-700 hover:text-amber-900 underline flex items-center gap-1 cursor-pointer"
-          >
-            <Edit2 className="w-3 h-3" />
-            <span>Edit Featured Quote</span>
-          </button>
-        </div>
+        <button
+          type="button"
+          onClick={() => onEdit(dailyPick.article)}
+          className="text-[11px] font-bold text-amber-700 hover:text-amber-900 underline flex items-center gap-1 cursor-pointer"
+        >
+          <Edit2 className="w-3 h-3" />
+          <span>Edit Featured Quote</span>
+        </button>
       </div>
 
       <div className="flex items-start gap-3 mt-2">
@@ -96,9 +94,11 @@ function AdminArticleOfTheDayBanner({ articles, onEdit }: { articles: Article[];
           />
         )}
         <div className="min-w-0 flex-1">
-          <h4 className="text-xs font-black text-slate-900 truncate">{decodeHtmlEntities(dailyPick.article.title)}</h4>
+          <h4 className="text-xs font-black text-slate-900 truncate">
+            <TranslatedText text={dailyPick.article.title} />
+          </h4>
           <p className="text-xs italic font-serif font-medium text-amber-900 mt-0.5 line-clamp-2">
-            &quot;{displayQuote}&quot;
+            &quot;<TranslatedText text={dailyPick.quote} />&quot;
           </p>
         </div>
       </div>
@@ -622,13 +622,12 @@ export default function ArticlesAdminPage() {
                         </span>
                       )}
                     </div>
-                    <h3 className="text-xs font-bold text-slate-900 truncate mt-1">{decodeHtmlEntities(art.title)}</h3>
+                    <h3 className="text-xs font-bold text-slate-900 truncate mt-1">
+                      <TranslatedText text={art.title} />
+                    </h3>
                     <div className="text-[11px] text-slate-500 font-medium truncate">{art.article_url}</div>
                     {art.highlight_quote && (
-                      <div className="mt-1.5 text-[11px] italic font-semibold text-amber-800 bg-amber-50 border border-amber-200/60 rounded-lg p-1.5 px-2.5 flex items-center gap-1.5">
-                        <MessageSquare className="w-3 h-3 text-amber-600 shrink-0" />
-                        <span className="truncate">&quot;{art.highlight_quote}&quot;</span>
-                      </div>
+                      <AdminArticleCardQuote quote={art.highlight_quote} />
                     )}
                   </div>
                 </div>

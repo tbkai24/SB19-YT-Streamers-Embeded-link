@@ -152,17 +152,39 @@ export function isEligibleForArticleOfTheDay(article: { article_url?: string; ca
 export async function translateTextToEnglish(text: string): Promise<string> {
   if (!text || !text.trim()) return text;
   const decoded = decodeHtmlEntities(text);
+
+  // 1. Try server-side route
   try {
-    const res = await fetch(`https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=en&dt=t&q=${encodeURIComponent(decoded)}`);
-    const data = await res.json();
-    if (data && data[0] && Array.isArray(data[0])) {
-      const translated = data[0].map((item: any) => item[0]).filter(Boolean).join('');
-      if (translated && translated.trim()) {
-        return decodeHtmlEntities(translated.trim());
+    const res = await fetch('/api/translate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text: decoded }),
+    });
+    if (res.ok) {
+      const data = await res.json();
+      if (data && data.translated && data.translated.trim().toLowerCase() !== decoded.trim().toLowerCase()) {
+        return decodeHtmlEntities(data.translated);
       }
     }
   } catch {
-    // Return original decoded text on network error/timeout
+    // Ignore
   }
+
+  // 2. Client-side MyMemory API fallback (Works 100% in browser CORS)
+  try {
+    const mmRes = await fetch(
+      `https://api.mymemory.translated.net/get?q=${encodeURIComponent(decoded)}&langpair=autodetect|en`
+    );
+    if (mmRes.ok) {
+      const mmData = await mmRes.json();
+      const translatedText = mmData?.responseData?.translatedText;
+      if (translatedText && typeof translatedText === 'string' && translatedText.trim()) {
+        return decodeHtmlEntities(translatedText.trim());
+      }
+    }
+  } catch {
+    // Ignore
+  }
+
   return decoded;
 }
