@@ -141,62 +141,94 @@ export function PwaInstaller() {
   };
 
   const handleEnableNotifications = async () => {
-    if (typeof window === 'undefined' || !('Notification' in window)) return;
     setIsSubmittingNotif(true);
 
     try {
-      const permission = await Notification.requestPermission();
+      // 1. iOS Safari Check
+      if (typeof window !== 'undefined' && !('Notification' in window)) {
+        alert("iPhone Notice: Please tap Share -> 'Add to Home Screen' first. Then open SB19 Streaming Hub from your Home Screen to enable Push Notifications!");
+        setIsSubmittingNotif(false);
+        return;
+      }
+
+      // Always invoke requestPermission directly on click gesture
+      let permission: NotificationPermission = 'default';
+      try {
+        permission = await Notification.requestPermission();
+      } catch {
+        permission = Notification.permission;
+      }
       setNotifPermission(permission);
 
-      if (permission === 'granted') {
-        setNotifSuccess(true);
-        setTimeout(() => setNotifSuccess(false), 4000);
+      if (permission === 'denied') {
+        alert("Notifications are currently blocked in your browser settings.\n\nTo unblock:\n1. Tap the lock/tune icon near the URL address bar.\n2. Tap Site Settings -> Permissions -> Notifications -> Allow.\n3. Refresh the page!");
+      }
 
-        if ('serviceWorker' in navigator) {
-          const reg = await navigator.serviceWorker.ready;
-          let sub = await reg.pushManager.getSubscription();
+      if ('serviceWorker' in navigator) {
+        const reg = await navigator.serviceWorker.ready;
+        let sub = await reg.pushManager.getSubscription();
 
-          const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || 'BDyUoM5OfcS_tNX4oRESHQhpvRAJJ8xhOiFYaAm16o4EJ7YE5yV1d7_2lftzyegd8Bq7kLzeN4p7AGcc8k2uSR4';
+        const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || 'BDyUoM5OfcS_tNX4oRESHQhpvRAJJ8xhOiFYaAm16o4EJ7YE5yV1d7_2lftzyegd8Bq7kLzeN4p7AGcc8k2uSR4';
 
-          if (!sub && vapidPublicKey) {
-            try {
-              const convertedKey = (base64String: string) => {
-                const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
-                const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
-                const rawData = window.atob(base64);
-                const outputArray = new Uint8Array(rawData.length);
-                for (let i = 0; i < rawData.length; ++i) {
-                  outputArray[i] = rawData.charCodeAt(i);
-                }
-                return outputArray;
-              };
+        if (!sub && vapidPublicKey) {
+          try {
+            const convertedKey = (base64String: string) => {
+              const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
+              const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+              const rawData = window.atob(base64);
+              const outputArray = new Uint8Array(rawData.length);
+              for (let i = 0; i < rawData.length; ++i) {
+                outputArray[i] = rawData.charCodeAt(i);
+              }
+              return outputArray;
+            };
 
-              sub = await reg.pushManager.subscribe({
-                userVisibleOnly: true,
-                applicationServerKey: convertedKey(vapidPublicKey),
-              });
-            } catch (subErr) {
-              console.log('Push subscribe error:', subErr);
-            }
+            sub = await reg.pushManager.subscribe({
+              userVisibleOnly: true,
+              applicationServerKey: convertedKey(vapidPublicKey),
+            });
+          } catch (subErr) {
+            console.log('Push subscribe error:', subErr);
           }
+        }
 
-          const subscriptionJSON = sub ? sub.toJSON() : null;
-          const endpoint = sub ? sub.endpoint : `browser-${Date.now()}-${Math.random().toString(36).substring(2)}`;
+        const subscriptionJSON = sub ? sub.toJSON() : null;
+        const endpoint = sub ? sub.endpoint : `browser-${Date.now()}-${Math.random().toString(36).substring(2)}`;
 
-          await fetch('/api/notifications/subscribe', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              endpoint,
-              subscription: subscriptionJSON,
-              keys: subscriptionJSON?.keys || null,
-              userAgent: navigator.userAgent,
-            }),
-          });
+        await fetch('/api/notifications/subscribe', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            endpoint,
+            subscription: subscriptionJSON,
+            keys: subscriptionJSON?.keys || null,
+            userAgent: navigator.userAgent,
+          }),
+        });
+
+        if (permission === 'granted' || sub) {
+          setNotifSuccess(true);
+          setTimeout(() => setNotifSuccess(false), 5000);
+
+          // Show immediate welcome OS notification to verify phone receives it
+          try {
+            const logoUrl = window.location.origin + '/assets/ytslogo.jpg';
+            const options: NotificationOptions & { renotify?: boolean } = {
+              body: 'SB19 Streaming Hub push notifications are active! 🎉',
+              icon: logoUrl,
+              badge: logoUrl,
+              tag: 'sb19-welcome-' + Date.now(),
+              renotify: true,
+              data: { url: '/' },
+            };
+            await reg.showNotification('SB19 Streaming Hub', options);
+          } catch {
+            // Ignore
+          }
         }
       }
-    } catch {
-      // Ignore errors
+    } catch (err: any) {
+      console.log('Notification error:', err);
     } finally {
       setIsSubmittingNotif(false);
     }
