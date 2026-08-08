@@ -5,10 +5,10 @@ import { createPortal } from 'react-dom';
 import { useAdminWorkspace } from '../layout';
 import { Article, ExtractedMetadata } from '@/types/database';
 import { getStoredArticles, saveArticles, saveArticleToSupabase, deleteArticleFromSupabase, generateUUID } from '@/lib/data-store';
-import { normalizeUrl, decodeHtmlEntities, isEligibleForArticleOfTheDay } from '@/lib/url-normalizer';
+import { normalizeUrl, decodeHtmlEntities, isEligibleForArticleOfTheDay, translateTextToEnglish } from '@/lib/url-normalizer';
 import { ImageUploadInput } from '@/components/admin/image-upload-input';
 import { DeleteConfirmModal } from '@/components/admin/delete-confirm-modal';
-import { Plus, Trash2, Edit2, ExternalLink, Sparkles, Loader2, Link2, MoveUp, MoveDown, X, CheckCircle2, Shuffle, Archive, RotateCcw, AlertTriangle, ArrowUpDown, MessageSquare, Filter } from 'lucide-react';
+import { Plus, Trash2, Edit2, ExternalLink, Sparkles, Loader2, Link2, MoveUp, MoveDown, X, CheckCircle2, Shuffle, Archive, RotateCcw, AlertTriangle, ArrowUpDown, MessageSquare, Filter, Globe } from 'lucide-react';
 
 function getDailyArticlePick(articles: Article[]): { article: Article; quote: string } | null {
   if (!articles || articles.length === 0) return null;
@@ -32,7 +32,78 @@ function getDailyArticlePick(articles: Article[]): { article: Article; quote: st
   }
   if (!quote) quote = article.title;
 
-  return { article, quote };
+  return { article, quote: decodeHtmlEntities(quote) };
+}
+
+function AdminArticleOfTheDayBanner({ articles, onEdit }: { articles: Article[]; onEdit: (art: Article) => void }) {
+  const dailyPick = getDailyArticlePick(articles);
+  const [displayQuote, setDisplayQuote] = useState<string>(dailyPick?.quote || '');
+  const [isTranslating, setIsTranslating] = useState<boolean>(false);
+
+  useEffect(() => {
+    if (!dailyPick?.quote) return;
+    const rawQuote = decodeHtmlEntities(dailyPick.quote);
+    setDisplayQuote(rawQuote);
+
+    let isCancelled = false;
+    setIsTranslating(true);
+    translateTextToEnglish(rawQuote).then((translated) => {
+      if (!isCancelled && translated) {
+        setDisplayQuote(translated);
+      }
+    }).finally(() => {
+      if (!isCancelled) setIsTranslating(false);
+    });
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [dailyPick?.article.id, dailyPick?.quote]);
+
+  if (!dailyPick) return null;
+
+  return (
+    <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-br from-amber-500/10 via-rose-500/5 to-amber-500/10 border border-amber-300/40 shadow-xs relative overflow-hidden">
+      <div className="flex items-center justify-between gap-2 mb-2">
+        <span className="px-2.5 py-0.5 rounded-full bg-amber-500 text-white text-[10px] font-black uppercase tracking-wider flex items-center gap-1 shadow-xs">
+          <Sparkles className="w-3 h-3 text-white" />
+          <span>Today&apos;s Article of the Day (Public Showcase)</span>
+        </span>
+        <div className="flex items-center gap-3">
+          {isTranslating && (
+            <span className="text-[10px] text-amber-700/80 font-bold animate-pulse flex items-center gap-1">
+              <Globe className="w-3 h-3 text-amber-600" />
+              <span>Translating...</span>
+            </span>
+          )}
+          <button
+            type="button"
+            onClick={() => onEdit(dailyPick.article)}
+            className="text-[11px] font-bold text-amber-700 hover:text-amber-900 underline flex items-center gap-1 cursor-pointer"
+          >
+            <Edit2 className="w-3 h-3" />
+            <span>Edit Featured Quote</span>
+          </button>
+        </div>
+      </div>
+
+      <div className="flex items-start gap-3 mt-2">
+        {dailyPick.article.thumbnail && (
+          <img
+            src={dailyPick.article.thumbnail}
+            alt={dailyPick.article.title}
+            className="w-12 h-12 rounded-xl object-cover border border-amber-200 shadow-2xs shrink-0"
+          />
+        )}
+        <div className="min-w-0 flex-1">
+          <h4 className="text-xs font-black text-slate-900 truncate">{decodeHtmlEntities(dailyPick.article.title)}</h4>
+          <p className="text-xs italic font-serif font-medium text-amber-900 mt-0.5 line-clamp-2">
+            &quot;{displayQuote}&quot;
+          </p>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 export default function ArticlesAdminPage() {
@@ -271,7 +342,7 @@ export default function ArticlesAdminPage() {
 
   const handleReshuffleOrder = async () => {
     if (activeArticles.length < 2) return;
-    
+
     // Fisher-Yates Random Shuffle
     const shuffled = [...activeArticles];
     for (let i = shuffled.length - 1; i > 0; i--) {
@@ -292,7 +363,7 @@ export default function ArticlesAdminPage() {
     });
 
     saveArticles(updated);
-    
+
     // Sync all updated display_order values to Supabase
     for (const art of shuffled) {
       await saveArticleToSupabase(art);
@@ -317,11 +388,10 @@ export default function ArticlesAdminPage() {
     <div className="space-y-6 animate-fade-in max-w-4xl w-full">
       {/* Toast Feedback Notification Banner */}
       {toast && (
-        <div className={`p-4 rounded-2xl border flex items-center justify-between shadow-lg animate-fade-in ${
-          toast.type === 'success' ? 'bg-emerald-50 border-emerald-300 text-emerald-900' :
-          toast.type === 'rose' ? 'bg-rose-50 border-rose-300 text-rose-900' :
-          'bg-slate-900 text-white border-slate-800'
-        }`}>
+        <div className={`p-4 rounded-2xl border flex items-center justify-between shadow-lg animate-fade-in ${toast.type === 'success' ? 'bg-emerald-50 border-emerald-300 text-emerald-900' :
+            toast.type === 'rose' ? 'bg-rose-50 border-rose-300 text-rose-900' :
+              'bg-slate-900 text-white border-slate-800'
+          }`}>
           <div className="flex items-center gap-3 text-xs font-bold">
             <CheckCircle2 className="w-5 h-5 shrink-0 text-emerald-600" />
             <span>{toast.message}</span>
@@ -346,18 +416,16 @@ export default function ArticlesAdminPage() {
             <button
               type="button"
               onClick={() => setViewTab('active')}
-              className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
-                viewTab === 'active' ? 'bg-white text-slate-900 shadow-2xs' : 'text-slate-500 hover:text-slate-900'
-              }`}
+              className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${viewTab === 'active' ? 'bg-white text-slate-900 shadow-2xs' : 'text-slate-500 hover:text-slate-900'
+                }`}
             >
               Active ({activeArticles.length})
             </button>
             <button
               type="button"
               onClick={() => setViewTab('archived')}
-              className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer flex items-center gap-1.5 ${
-                viewTab === 'archived' ? 'bg-white text-rose-600 shadow-2xs' : 'text-slate-500 hover:text-rose-600'
-              }`}
+              className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer flex items-center gap-1.5 ${viewTab === 'archived' ? 'bg-white text-rose-600 shadow-2xs' : 'text-slate-500 hover:text-rose-600'
+                }`}
             >
               <Archive className="w-3.5 h-3.5" />
               <span>Bin ({archivedArticles.length})</span>
@@ -455,18 +523,16 @@ export default function ArticlesAdminPage() {
           <button
             type="button"
             onClick={() => setFilterCategory('all')}
-            className={`px-3 py-1 rounded-full font-bold transition-all cursor-pointer ${
-              filterCategory === 'all' ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-            }`}
+            className={`px-3 py-1 rounded-full font-bold transition-all cursor-pointer ${filterCategory === 'all' ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+              }`}
           >
             All ({activeArticles.length})
           </button>
           <button
             type="button"
             onClick={() => setFilterCategory('spotlight')}
-            className={`px-3 py-1 rounded-full font-bold transition-all cursor-pointer flex items-center gap-1 ${
-              filterCategory === 'spotlight' ? 'bg-amber-500 text-white' : 'bg-amber-50 text-amber-700 border border-amber-200 hover:bg-amber-100'
-            }`}
+            className={`px-3 py-1 rounded-full font-bold transition-all cursor-pointer flex items-center gap-1 ${filterCategory === 'spotlight' ? 'bg-amber-500 text-white' : 'bg-amber-50 text-amber-700 border border-amber-200 hover:bg-amber-100'
+              }`}
           >
             <Sparkles className="w-3 h-3" />
             <span>Article of the Day</span>
@@ -474,9 +540,8 @@ export default function ArticlesAdminPage() {
           <button
             type="button"
             onClick={() => setFilterCategory('quotes')}
-            className={`px-3 py-1 rounded-full font-bold transition-all cursor-pointer flex items-center gap-1 ${
-              filterCategory === 'quotes' ? 'bg-rose-600 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-            }`}
+            className={`px-3 py-1 rounded-full font-bold transition-all cursor-pointer flex items-center gap-1 ${filterCategory === 'quotes' ? 'bg-rose-600 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+              }`}
           >
             <MessageSquare className="w-3 h-3" />
             <span>With Quotes</span>
@@ -484,18 +549,16 @@ export default function ArticlesAdminPage() {
           <button
             type="button"
             onClick={() => setFilterCategory('outlets')}
-            className={`px-3 py-1 rounded-full font-bold transition-all cursor-pointer ${
-              filterCategory === 'outlets' ? 'bg-emerald-600 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-            }`}
+            className={`px-3 py-1 rounded-full font-bold transition-all cursor-pointer ${filterCategory === 'outlets' ? 'bg-emerald-600 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+              }`}
           >
             News Outlets
           </button>
           <button
             type="button"
             onClick={() => setFilterCategory('external')}
-            className={`px-3 py-1 rounded-full font-bold transition-all cursor-pointer ${
-              filterCategory === 'external' ? 'bg-slate-700 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-            }`}
+            className={`px-3 py-1 rounded-full font-bold transition-all cursor-pointer ${filterCategory === 'external' ? 'bg-slate-700 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+              }`}
           >
             Search & Forum Links
           </button>

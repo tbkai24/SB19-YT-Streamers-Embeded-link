@@ -144,3 +144,25 @@ export function isEligibleForArticleOfTheDay(article: { article_url?: string; ca
     url.includes(kw) || canon.includes(kw) || site.includes(kw)
   );
 }
+
+/**
+ * Automatically translates foreign text to English using Google Translate endpoint.
+ * Returns clean translated text or original decoded text if translation fails/is already English.
+ */
+export async function translateTextToEnglish(text: string): Promise<string> {
+  if (!text || !text.trim()) return text;
+  const decoded = decodeHtmlEntities(text);
+  try {
+    const res = await fetch(`https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=en&dt=t&q=${encodeURIComponent(decoded)}`);
+    const data = await res.json();
+    if (data && data[0] && Array.isArray(data[0])) {
+      const translated = data[0].map((item: any) => item[0]).filter(Boolean).join('');
+      if (translated && translated.trim()) {
+        return decodeHtmlEntities(translated.trim());
+      }
+    }
+  } catch {
+    // Return original decoded text on network error/timeout
+  }
+  return decoded;
+}

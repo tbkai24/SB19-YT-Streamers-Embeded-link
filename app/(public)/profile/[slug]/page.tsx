@@ -5,13 +5,13 @@ import Link from 'next/link';
 import { Profile, Article } from '@/types/database';
 import { getStoredProfiles, getStoredArticles, fetchProfilesFromSupabase, fetchArticlesFromSupabase, recordProfileView } from '@/lib/data-store';
 import { createClient } from '@/lib/supabase/client';
-import { extractYouTubeId, decodeHtmlEntities, isEligibleForArticleOfTheDay } from '@/lib/url-normalizer';
+import { extractYouTubeId, decodeHtmlEntities, isEligibleForArticleOfTheDay, translateTextToEnglish } from '@/lib/url-normalizer';
 import { SocialLinks } from '@/components/public/social-links';
 import { ArticleCard } from '@/components/public/article-card';
 import { SubmitModal } from '@/components/public/submit-modal';
 import { PublicFooter } from '@/components/public/footer';
 import { BrandLogo } from '@/components/public/logo';
-import { ArrowLeft, PlusCircle, Radio, Video, Sparkles, ExternalLink } from 'lucide-react';
+import { ArrowLeft, PlusCircle, Radio, Video, Sparkles, ExternalLink, Globe } from 'lucide-react';
 
 interface ProfilePageProps {
   params: Promise<{ slug: string }>;
@@ -40,7 +40,73 @@ function getDailyArticlePick(articles: Article[]): { article: Article; quote: st
   }
   if (!quote) quote = article.title;
 
-  return { article, quote };
+  return { article, quote: decodeHtmlEntities(quote) };
+}
+
+function ArticleOfTheDayCard({ articles }: { articles: Article[] }) {
+  const dailyPick = getDailyArticlePick(articles);
+  const [displayQuote, setDisplayQuote] = useState<string>(dailyPick?.quote || '');
+  const [isTranslating, setIsTranslating] = useState<boolean>(false);
+
+  useEffect(() => {
+    if (!dailyPick?.quote) return;
+    const rawQuote = decodeHtmlEntities(dailyPick.quote);
+    setDisplayQuote(rawQuote);
+
+    let isCancelled = false;
+    setIsTranslating(true);
+    translateTextToEnglish(rawQuote).then((translated) => {
+      if (!isCancelled && translated) {
+        setDisplayQuote(translated);
+      }
+    }).finally(() => {
+      if (!isCancelled) setIsTranslating(false);
+    });
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [dailyPick?.article.id, dailyPick?.quote]);
+
+  if (!dailyPick) return null;
+
+  return (
+    <div className="w-full mt-4 p-4 sm:p-5 rounded-2xl bg-gradient-to-br from-amber-500/10 via-rose-500/5 to-amber-500/10 border border-amber-300/40 shadow-sm relative overflow-hidden group">
+      <div className="flex items-center justify-between gap-2 mb-2">
+        <span className="px-2.5 py-0.5 rounded-full bg-amber-500 text-white text-[10px] font-black uppercase tracking-wider flex items-center gap-1 shadow-xs">
+          <Sparkles className="w-3 h-3 text-white" />
+          <span>Article of the Day</span>
+        </span>
+        {isTranslating && (
+          <span className="text-[10px] text-amber-700/80 font-bold animate-pulse flex items-center gap-1">
+            <Globe className="w-3 h-3 text-amber-600" />
+            <span>Translating...</span>
+          </span>
+        )}
+      </div>
+
+      <div className="relative pl-3 border-l-2 border-amber-400 my-2">
+        <p className="text-xs sm:text-sm italic font-serif font-medium text-slate-800 leading-relaxed">
+          &quot;{displayQuote}&quot;
+        </p>
+      </div>
+
+      <div className="flex items-center justify-between gap-2 mt-3 pt-2 border-t border-amber-200/40">
+        <span className="text-[11px] font-extrabold text-slate-700 truncate">
+          {decodeHtmlEntities(dailyPick.article.title)}
+        </span>
+        <a
+          href={dailyPick.article.article_url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="px-3 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-white text-xs font-black shrink-0 transition-transform active:scale-95 shadow-xs flex items-center gap-1"
+        >
+          <span>Stream Pick</span>
+          <ExternalLink className="w-3 h-3" />
+        </a>
+      </div>
+    </div>
+  );
 }
 
 export default function PublicProfilePage({ params }: ProfilePageProps) {
@@ -236,41 +302,7 @@ export default function PublicProfilePage({ params }: ProfilePageProps) {
         })()}
 
         {/* Daily Highlight Quote & Article of the Day Showcase */}
-        {(() => {
-          const dailyPick = getDailyArticlePick(articles);
-          if (!dailyPick) return null;
-          return (
-            <div className="w-full mt-4 p-4 sm:p-5 rounded-2xl bg-gradient-to-br from-amber-500/10 via-rose-500/5 to-amber-500/10 border border-amber-300/40 shadow-sm relative overflow-hidden group">
-              <div className="flex items-center justify-between gap-2 mb-2">
-                <span className="px-2.5 py-0.5 rounded-full bg-amber-500 text-white text-[10px] font-black uppercase tracking-wider flex items-center gap-1 shadow-xs">
-                  <Sparkles className="w-3 h-3 text-white" />
-                  <span>Article of the Day</span>
-                </span>
-              </div>
-
-              <div className="relative pl-3 border-l-2 border-amber-400 my-2">
-                <p className="text-xs sm:text-sm italic font-serif font-medium text-slate-800 leading-relaxed">
-                  &quot;{dailyPick.quote}&quot;
-                </p>
-              </div>
-
-              <div className="flex items-center justify-between gap-2 mt-3 pt-2 border-t border-amber-200/40">
-                <span className="text-[11px] font-extrabold text-slate-700 truncate">
-                  {decodeHtmlEntities(dailyPick.article.title)}
-                </span>
-                <a
-                  href={dailyPick.article.article_url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="px-3 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-white text-xs font-black shrink-0 transition-transform active:scale-95 shadow-xs flex items-center gap-1"
-                >
-                  <span>Stream Pick</span>
-                  <ExternalLink className="w-3 h-3" />
-                </a>
-              </div>
-            </div>
-          );
-        })()}
+        <ArticleOfTheDayCard articles={articles} />
 
         {/* Streaming Articles Section */}
         <div className="w-full mt-4 space-y-4">
