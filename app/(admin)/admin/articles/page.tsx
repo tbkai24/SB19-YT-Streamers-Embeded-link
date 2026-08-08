@@ -5,10 +5,35 @@ import { createPortal } from 'react-dom';
 import { useAdminWorkspace } from '../layout';
 import { Article, ExtractedMetadata } from '@/types/database';
 import { getStoredArticles, saveArticles, saveArticleToSupabase, deleteArticleFromSupabase, generateUUID } from '@/lib/data-store';
-import { normalizeUrl, decodeHtmlEntities } from '@/lib/url-normalizer';
+import { normalizeUrl, decodeHtmlEntities, isEligibleForArticleOfTheDay } from '@/lib/url-normalizer';
 import { ImageUploadInput } from '@/components/admin/image-upload-input';
 import { DeleteConfirmModal } from '@/components/admin/delete-confirm-modal';
-import { Plus, Trash2, Edit2, ExternalLink, Sparkles, Loader2, Link2, MoveUp, MoveDown, X, CheckCircle2, Shuffle, Archive, RotateCcw, AlertTriangle, ArrowUpDown } from 'lucide-react';
+import { Plus, Trash2, Edit2, ExternalLink, Sparkles, Loader2, Link2, MoveUp, MoveDown, X, CheckCircle2, Shuffle, Archive, RotateCcw, AlertTriangle, ArrowUpDown, MessageSquare, Filter } from 'lucide-react';
+
+function getDailyArticlePick(articles: Article[]): { article: Article; quote: string } | null {
+  if (!articles || articles.length === 0) return null;
+
+  const eligible = articles.filter(art => isEligibleForArticleOfTheDay(art));
+  const pool = eligible.length > 0 ? eligible : articles;
+
+  const todayStr = new Date().toISOString().split('T')[0];
+  let hash = 0;
+  for (let i = 0; i < todayStr.length; i++) {
+    hash = (hash << 5) - hash + todayStr.charCodeAt(i);
+    hash |= 0;
+  }
+  const index = Math.abs(hash) % pool.length;
+  const article = pool[index];
+
+  let quote = article.highlight_quote;
+  if (!quote && article.description) {
+    const sentences = article.description.split(/(?<=[.!?])\s+/);
+    quote = sentences.slice(0, 2).join(' ');
+  }
+  if (!quote) quote = article.title;
+
+  return { article, quote };
+}
 
 export default function ArticlesAdminPage() {
   const { activeProfile, articles, refreshData } = useAdminWorkspace();
@@ -18,6 +43,7 @@ export default function ArticlesAdminPage() {
   const [editingArticle, setEditingArticle] = useState<Article | null>(null);
 
   const [viewTab, setViewTab] = useState<'active' | 'archived'>('active');
+  const [filterCategory, setFilterCategory] = useState<'all' | 'spotlight' | 'quotes' | 'outlets' | 'external'>('all');
   const [sortBy, setSortBy] = useState<'order' | 'name-asc' | 'name-desc' | 'clicks-desc' | 'clicks-asc' | 'newest' | 'oldest'>('order');
   const [softDeleteTarget, setSoftDeleteTarget] = useState<Article | null>(null);
   const [permDeleteTarget, setPermDeleteTarget] = useState<Article | null>(null);
@@ -27,6 +53,7 @@ export default function ArticlesAdminPage() {
   const [websiteName, setWebsiteName] = useState('');
   const [thumbnail, setThumbnail] = useState('');
   const [description, setDescription] = useState('');
+  const [highlightQuote, setHighlightQuote] = useState('');
   const [fetchingMeta, setFetchingMeta] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'info' | 'rose' } | null>(null);
@@ -46,28 +73,38 @@ export default function ArticlesAdminPage() {
     .filter(a => a.profile_id === activeProfile.id)
     .sort((a, b) => a.display_order - b.display_order);
 
-  const activeArticles = profileArticles.filter(a => a.status !== 'archived');
+  const activeArticles = profileArticles.filter(a => a.status === 'published');
   const archivedArticles = profileArticles.filter(a => a.status === 'archived');
   const currentTabArticles = viewTab === 'active' ? activeArticles : archivedArticles;
 
   const getSortedArticlesList = (baseList: Article[]) => {
-    const list = [...baseList];
+    const dailyPick = getDailyArticlePick(activeArticles);
+    const filtered = baseList.filter(art => {
+      const isEligible = isEligibleForArticleOfTheDay(art);
+
+      if (filterCategory === 'spotlight') return dailyPick?.article.id === art.id;
+      if (filterCategory === 'quotes') return Boolean(art.highlight_quote);
+      if (filterCategory === 'outlets') return isEligible;
+      if (filterCategory === 'external') return !isEligible;
+      return true;
+    });
+
     switch (sortBy) {
       case 'name-asc':
-        return list.sort((a, b) => a.title.localeCompare(b.title));
+        return filtered.sort((a, b) => a.title.localeCompare(b.title));
       case 'name-desc':
-        return list.sort((a, b) => b.title.localeCompare(a.title));
+        return filtered.sort((a, b) => b.title.localeCompare(a.title));
       case 'clicks-desc':
-        return list.sort((a, b) => (b.clicks_count || 0) - (a.clicks_count || 0));
+        return filtered.sort((a, b) => (b.clicks_count || 0) - (a.clicks_count || 0));
       case 'clicks-asc':
-        return list.sort((a, b) => (a.clicks_count || 0) - (b.clicks_count || 0));
+        return filtered.sort((a, b) => (a.clicks_count || 0) - (b.clicks_count || 0));
       case 'newest':
-        return list.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+        return filtered.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
       case 'oldest':
-        return list.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+        return filtered.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
       case 'order':
       default:
-        return list.sort((a, b) => a.display_order - b.display_order);
+        return filtered.sort((a, b) => a.display_order - b.display_order);
     }
   };
 
@@ -100,6 +137,7 @@ export default function ArticlesAdminPage() {
     setWebsiteName('');
     setThumbnail('');
     setDescription('');
+    setHighlightQuote('');
     setEditingArticle(null);
     setIsAddOpen(false);
   };
@@ -121,6 +159,7 @@ export default function ArticlesAdminPage() {
         website_name: websiteName.trim() || new URL(normalized).hostname.replace('www.', ''),
         thumbnail: thumbnail.trim() || null,
         description: description.trim() || null,
+        highlight_quote: highlightQuote.trim() || null,
         updated_at: new Date().toISOString(),
       };
       const updated = allArticles.map(a => a.id === editingArticle.id ? updatedArticle : a);
@@ -148,6 +187,7 @@ export default function ArticlesAdminPage() {
         title: title.trim(),
         thumbnail: thumbnail.trim() || null,
         description: description.trim() || null,
+        highlight_quote: highlightQuote.trim() || null,
         display_order: activeArticles.length + 1,
         status: 'published',
         created_at: new Date().toISOString(),
@@ -269,6 +309,7 @@ export default function ArticlesAdminPage() {
     setWebsiteName(art.website_name);
     setThumbnail(art.thumbnail || '');
     setDescription(art.description || '');
+    setHighlightQuote(art.highlight_quote || '');
     setIsAddOpen(true);
   };
 
@@ -367,6 +408,99 @@ export default function ArticlesAdminPage() {
           </button>
         </div>
       </div>
+      {/* Article of the Day Spotlight Banner for Admin */}
+      {viewTab === 'active' && activeArticles.length > 0 && (() => {
+        const dailyPick = getDailyArticlePick(activeArticles);
+        if (!dailyPick) return null;
+        return (
+          <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-br from-amber-500/10 via-rose-500/5 to-amber-500/10 border border-amber-300/40 shadow-xs relative overflow-hidden">
+            <div className="flex items-center justify-between gap-2 mb-2">
+              <span className="px-2.5 py-0.5 rounded-full bg-amber-500 text-white text-[10px] font-black uppercase tracking-wider flex items-center gap-1 shadow-xs">
+                <Sparkles className="w-3 h-3 text-white" />
+                <span>Today&apos;s Article of the Day (Public Showcase)</span>
+              </span>
+              <button
+                type="button"
+                onClick={() => openEdit(dailyPick.article)}
+                className="text-[11px] font-bold text-amber-700 hover:text-amber-900 underline flex items-center gap-1 cursor-pointer"
+              >
+                <Edit2 className="w-3 h-3" />
+                <span>Edit Featured Quote</span>
+              </button>
+            </div>
+
+            <div className="flex items-start gap-3 mt-2">
+              {dailyPick.article.thumbnail && (
+                <img
+                  src={dailyPick.article.thumbnail}
+                  alt={dailyPick.article.title}
+                  className="w-12 h-12 rounded-xl object-cover border border-amber-200 shadow-2xs shrink-0"
+                />
+              )}
+              <div className="min-w-0 flex-1">
+                <h4 className="text-xs font-black text-slate-900 truncate">{decodeHtmlEntities(dailyPick.article.title)}</h4>
+                <p className="text-xs italic font-serif font-medium text-amber-900 mt-0.5 line-clamp-2">
+                  &quot;{dailyPick.quote}&quot;
+                </p>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* Filter Category Pills Bar */}
+      {viewTab === 'active' && activeArticles.length > 0 && (
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 text-xs">
+          <Filter className="w-3.5 h-3.5 text-slate-400 shrink-0 ml-1" />
+          <button
+            type="button"
+            onClick={() => setFilterCategory('all')}
+            className={`px-3 py-1 rounded-full font-bold transition-all cursor-pointer ${
+              filterCategory === 'all' ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+            }`}
+          >
+            All ({activeArticles.length})
+          </button>
+          <button
+            type="button"
+            onClick={() => setFilterCategory('spotlight')}
+            className={`px-3 py-1 rounded-full font-bold transition-all cursor-pointer flex items-center gap-1 ${
+              filterCategory === 'spotlight' ? 'bg-amber-500 text-white' : 'bg-amber-50 text-amber-700 border border-amber-200 hover:bg-amber-100'
+            }`}
+          >
+            <Sparkles className="w-3 h-3" />
+            <span>Article of the Day</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setFilterCategory('quotes')}
+            className={`px-3 py-1 rounded-full font-bold transition-all cursor-pointer flex items-center gap-1 ${
+              filterCategory === 'quotes' ? 'bg-rose-600 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+            }`}
+          >
+            <MessageSquare className="w-3 h-3" />
+            <span>With Quotes</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setFilterCategory('outlets')}
+            className={`px-3 py-1 rounded-full font-bold transition-all cursor-pointer ${
+              filterCategory === 'outlets' ? 'bg-emerald-600 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+            }`}
+          >
+            News Outlets
+          </button>
+          <button
+            type="button"
+            onClick={() => setFilterCategory('external')}
+            className={`px-3 py-1 rounded-full font-bold transition-all cursor-pointer ${
+              filterCategory === 'external' ? 'bg-slate-700 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+            }`}
+          >
+            Search & Forum Links
+          </button>
+        </div>
+      )}
 
       <div className="rounded-2xl glass-panel border border-slate-200 bg-white overflow-hidden shadow-xs">
         {sortedTabArticles.length === 0 ? (
@@ -427,6 +561,12 @@ export default function ArticlesAdminPage() {
                     </div>
                     <h3 className="text-xs font-bold text-slate-900 truncate mt-1">{decodeHtmlEntities(art.title)}</h3>
                     <div className="text-[11px] text-slate-500 font-medium truncate">{art.article_url}</div>
+                    {art.highlight_quote && (
+                      <div className="mt-1.5 text-[11px] italic font-semibold text-amber-800 bg-amber-50 border border-amber-200/60 rounded-lg p-1.5 px-2.5 flex items-center gap-1.5">
+                        <MessageSquare className="w-3 h-3 text-amber-600 shrink-0" />
+                        <span className="truncate">&quot;{art.highlight_quote}&quot;</span>
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -608,6 +748,23 @@ export default function ArticlesAdminPage() {
                   onChange={(e) => setDescription(e.target.value)}
                   placeholder="Short description..."
                   className="w-full p-3 bg-white border border-slate-300 rounded-xl text-slate-900 text-xs font-semibold focus:outline-none focus:border-rose-600 shadow-xs resize-none"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-black text-slate-900 uppercase tracking-wider mb-1.5 flex items-center justify-between">
+                  <span className="flex items-center gap-1">
+                    <MessageSquare className="w-3.5 h-3.5 text-amber-500" />
+                    <span>Highlight Quote / Excerpt Snippet (Optional)</span>
+                  </span>
+                  <span className="text-[10px] text-amber-600 font-bold normal-case">Daily Spotlight Quote</span>
+                </label>
+                <textarea
+                  rows={2}
+                  value={highlightQuote}
+                  onChange={(e) => setHighlightQuote(e.target.value)}
+                  placeholder='e.g. "SB19 shatters streaming records with breathtaking visuals in LAWLESS..."'
+                  className="w-full p-3 bg-amber-50/40 border border-amber-200 rounded-xl text-slate-900 text-xs font-semibold focus:outline-none focus:border-amber-500 shadow-xs resize-none"
                 />
               </div>
             </form>

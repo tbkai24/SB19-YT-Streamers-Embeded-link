@@ -5,16 +5,42 @@ import Link from 'next/link';
 import { Profile, Article } from '@/types/database';
 import { getStoredProfiles, getStoredArticles, fetchProfilesFromSupabase, fetchArticlesFromSupabase, recordProfileView } from '@/lib/data-store';
 import { createClient } from '@/lib/supabase/client';
-import { extractYouTubeId } from '@/lib/url-normalizer';
+import { extractYouTubeId, decodeHtmlEntities, isEligibleForArticleOfTheDay } from '@/lib/url-normalizer';
 import { SocialLinks } from '@/components/public/social-links';
 import { ArticleCard } from '@/components/public/article-card';
 import { SubmitModal } from '@/components/public/submit-modal';
 import { PublicFooter } from '@/components/public/footer';
 import { BrandLogo } from '@/components/public/logo';
-import { ArrowLeft, PlusCircle, Radio, Video } from 'lucide-react';
+import { ArrowLeft, PlusCircle, Radio, Video, Sparkles, ExternalLink } from 'lucide-react';
 
 interface ProfilePageProps {
   params: Promise<{ slug: string }>;
+}
+
+function getDailyArticlePick(articles: Article[]): { article: Article; quote: string } | null {
+  if (!articles || articles.length === 0) return null;
+
+  // Filter out Reddit, Genius, Google Search, social networks
+  const eligible = articles.filter(art => isEligibleForArticleOfTheDay(art));
+  const pool = eligible.length > 0 ? eligible : articles;
+
+  const todayStr = new Date().toISOString().split('T')[0];
+  let hash = 0;
+  for (let i = 0; i < todayStr.length; i++) {
+    hash = (hash << 5) - hash + todayStr.charCodeAt(i);
+    hash |= 0;
+  }
+  const index = Math.abs(hash) % pool.length;
+  const article = pool[index];
+
+  let quote = article.highlight_quote;
+  if (!quote && article.description) {
+    const sentences = article.description.split(/(?<=[.!?])\s+/);
+    quote = sentences.slice(0, 2).join(' ');
+  }
+  if (!quote) quote = article.title;
+
+  return { article, quote };
 }
 
 export default function PublicProfilePage({ params }: ProfilePageProps) {
@@ -204,6 +230,43 @@ export default function PublicProfilePage({ params }: ProfilePageProps) {
                   allowFullScreen
                   className="w-full h-full border-0"
                 />
+              </div>
+            </div>
+          );
+        })()}
+
+        {/* Daily Highlight Quote & Article of the Day Showcase */}
+        {(() => {
+          const dailyPick = getDailyArticlePick(articles);
+          if (!dailyPick) return null;
+          return (
+            <div className="w-full mt-4 p-4 sm:p-5 rounded-2xl bg-gradient-to-br from-amber-500/10 via-rose-500/5 to-amber-500/10 border border-amber-300/40 shadow-sm relative overflow-hidden group">
+              <div className="flex items-center justify-between gap-2 mb-2">
+                <span className="px-2.5 py-0.5 rounded-full bg-amber-500 text-white text-[10px] font-black uppercase tracking-wider flex items-center gap-1 shadow-xs">
+                  <Sparkles className="w-3 h-3 text-white" />
+                  <span>Article of the Day</span>
+                </span>
+              </div>
+
+              <div className="relative pl-3 border-l-2 border-amber-400 my-2">
+                <p className="text-xs sm:text-sm italic font-serif font-medium text-slate-800 leading-relaxed">
+                  &quot;{dailyPick.quote}&quot;
+                </p>
+              </div>
+
+              <div className="flex items-center justify-between gap-2 mt-3 pt-2 border-t border-amber-200/40">
+                <span className="text-[11px] font-extrabold text-slate-700 truncate">
+                  {decodeHtmlEntities(dailyPick.article.title)}
+                </span>
+                <a
+                  href={dailyPick.article.article_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="px-3 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-white text-xs font-black shrink-0 transition-transform active:scale-95 shadow-xs flex items-center gap-1"
+                >
+                  <span>Stream Pick</span>
+                  <ExternalLink className="w-3 h-3" />
+                </a>
               </div>
             </div>
           );

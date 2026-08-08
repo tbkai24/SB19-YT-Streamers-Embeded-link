@@ -40,6 +40,7 @@ export interface Article {
   website_name: string;
   thumbnail: string | null;
   description: string | null;
+  highlight_quote?: string | null;
   display_order: number;
   status: ArticleStatus;
   clicks_count?: number;

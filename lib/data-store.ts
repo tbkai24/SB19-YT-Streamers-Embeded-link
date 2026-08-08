@@ -205,6 +205,19 @@ export async function saveArticleToSupabase(article: Partial<Article>): Promise<
       .maybeSingle();
 
     if (error) {
+      if (error.message?.includes('highlight_quote') || error.code === 'PGRST204') {
+        const { highlight_quote, ...safeArticle } = article;
+        const retryRes = await supabase.from('articles').upsert(safeArticle).select().maybeSingle();
+        if (!retryRes.error && retryRes.data) {
+          const resultData = { ...retryRes.data, highlight_quote: article.highlight_quote } as Article;
+          const all = getStoredArticles();
+          const idx = all.findIndex(a => a.id === resultData.id);
+          if (idx >= 0) all[idx] = resultData;
+          else all.unshift(resultData);
+          saveArticles(all);
+          return { success: true, data: resultData };
+        }
+      }
       return { success: false, error: error.message || 'Failed to save article to database.' };
     }
 

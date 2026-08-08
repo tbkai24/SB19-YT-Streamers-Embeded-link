@@ -112,3 +112,35 @@ export function decodeHtmlEntities(str?: string | null): string {
 
   return curr;
 }
+
+/**
+ * List of domain / platform keywords that should NOT be selected as Article of the Day.
+ * You can add any keyword (e.g. 'reddit', 'genius', 'google', 'quora', etc.) to this array.
+ */
+export const EXCLUDED_SPOTLIGHT_KEYWORDS: string[] = [
+  'reddit',
+  'genius',
+  'google',
+  'twitter',
+  'x.com',
+  'facebook',
+  'instagram',
+  'tiktok',
+  'youtube',
+  'pinterest',
+  'wikipedia',
+];
+
+/**
+ * Helper to check if an article is eligible to be picked as Article of the Day.
+ */
+export function isEligibleForArticleOfTheDay(article: { article_url?: string; canonical_url?: string; website_name?: string }): boolean {
+  if (!article) return false;
+  const url = (article.article_url || '').toLowerCase();
+  const canon = (article.canonical_url || '').toLowerCase();
+  const site = (article.website_name || '').toLowerCase();
+
+  return !EXCLUDED_SPOTLIGHT_KEYWORDS.some(kw =>
+    url.includes(kw) || canon.includes(kw) || site.includes(kw)
+  );
+}
