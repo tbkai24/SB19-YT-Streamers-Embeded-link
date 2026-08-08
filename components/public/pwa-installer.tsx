@@ -192,21 +192,20 @@ export function PwaInstaller() {
           }
         }
 
-        const subscriptionJSON = sub ? sub.toJSON() : null;
-        const endpoint = sub ? sub.endpoint : `browser-${Date.now()}-${Math.random().toString(36).substring(2)}`;
+        if (sub && sub.endpoint && sub.endpoint.startsWith('https://')) {
+          const subscriptionJSON = sub.toJSON();
 
-        await fetch('/api/notifications/subscribe', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            endpoint,
-            subscription: subscriptionJSON,
-            keys: subscriptionJSON?.keys || null,
-            userAgent: navigator.userAgent,
-          }),
-        });
+          await fetch('/api/notifications/subscribe', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              endpoint: sub.endpoint,
+              subscription: subscriptionJSON,
+              keys: subscriptionJSON?.keys || null,
+              userAgent: navigator.userAgent,
+            }),
+          });
 
-        if (permission === 'granted' || sub) {
           setNotifSuccess(true);
           setTimeout(() => setNotifSuccess(false), 5000);
 

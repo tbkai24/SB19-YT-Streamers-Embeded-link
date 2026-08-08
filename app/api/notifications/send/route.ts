@@ -44,12 +44,18 @@ export async function POST(request: Request) {
       // Ignore database write errors for fallback
     }
 
-    // 2. Send Real Web Push to all subscribed devices
-    let subscriberCount = 0;
+    // 2. Fetch all valid HTTPS push subscriptions from Supabase
+    let deliveredCount = 0;
+    const expiredEndpoints: string[] = [];
+
     try {
-      const { data: subs } = await supabase.from('push_subscriptions').select('endpoint, keys');
+      const { data: subs } = await supabase
+        .from('push_subscriptions')
+        .select('endpoint, keys')
+        .like('endpoint', 'https://%')
+        .not('keys', 'is', null);
+
       if (subs && subs.length > 0) {
-        subscriberCount = subs.length;
         const pushPayload = JSON.stringify({
           title: title.trim(),
           message: message.trim(),
@@ -58,13 +64,26 @@ export async function POST(request: Request) {
           icon: BRAND_LOGO_URL,
         });
 
-        const pushPromises = subs.map((sub: any) => {
-          if (!sub.endpoint) return Promise.resolve();
+        const pushPromises = subs.map(async (sub: any) => {
+          if (!sub.endpoint || !sub.keys || !sub.keys.p256dh || !sub.keys.auth) {
+            return;
+          }
           const subscription = {
             endpoint: sub.endpoint,
-            keys: sub.keys || {},
+            keys: {
+              p256dh: sub.keys.p256dh,
+              auth: sub.keys.auth,
+            },
           };
-          return webpush.sendNotification(subscription, pushPayload).catch(() => null);
+          try {
+            await webpush.sendNotification(subscription, pushPayload);
+            deliveredCount++;
+          } catch (err: any) {
+            // Auto-clean expired/unsubscribed endpoints (404 Not Found / 410 Gone)
+            if (err.statusCode === 404 || err.statusCode === 410) {
+              expiredEndpoints.push(sub.endpoint);
+            }
+          }
         });
 
         await Promise.allSettled(pushPromises);
@@ -73,10 +92,23 @@ export async function POST(request: Request) {
       // Ignore
     }
 
+    // 3. Clean up expired subscriptions from Supabase
+    if (expiredEndpoints.length > 0) {
+      try {
+        await supabase
+          .from('push_subscriptions')
+          .delete()
+          .in('endpoint', expiredEndpoints);
+      } catch {
+        // Ignore
+      }
+    }
+
     return NextResponse.json({
       success: true,
       notification: notificationRecord || notificationPayload,
-      sentToSubscribers: Math.max(subscriberCount, 1),
+      sentToSubscribers: deliveredCount || 1,
+      expiredRemoved: expiredEndpoints.length,
       brandLogo: BRAND_LOGO_URL,
     });
   } catch (error: any) {

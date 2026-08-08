@@ -4,8 +4,15 @@ import { createClient } from '@/lib/supabase/client';
 export async function POST(request: Request) {
   try {
     const { endpoint, subscription, keys, userAgent } = await request.json();
-    if (!endpoint) {
-      return NextResponse.json({ error: 'Endpoint is required' }, { status: 400 });
+
+    // 1. Strict validation: Must be an HTTPS Push Service endpoint (FCM, Apple APNs, Mozilla)
+    if (!endpoint || typeof endpoint !== 'string' || !endpoint.startsWith('https://')) {
+      return NextResponse.json({ error: 'Valid HTTPS WebPush endpoint is required' }, { status: 400 });
+    }
+
+    const subKeys = keys || subscription?.keys || null;
+    if (!subKeys || !subKeys.p256dh || !subKeys.auth) {
+      return NextResponse.json({ error: 'Subscription p256dh and auth keys are required' }, { status: 400 });
     }
 
     const supabase = createClient();
@@ -13,15 +20,14 @@ export async function POST(request: Request) {
       .from('push_subscriptions')
       .upsert({
         endpoint,
-        keys: keys || subscription?.keys || null,
+        keys: subKeys,
         user_agent: userAgent || null,
         created_at: new Date().toISOString(),
       }, { onConflict: 'endpoint' })
       .select();
 
     if (error) {
-      // Return success true for graceful fallback if table not yet created
-      return NextResponse.json({ success: true, message: 'Saved locally' });
+      return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
     return NextResponse.json({ success: true, subscription: data?.[0] || null });

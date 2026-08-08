@@ -1,6 +1,6 @@
 import type { MetadataRoute } from 'next';
 
-export default function manifest(): MetadataRoute.Manifest {
+export default function manifest(): MetadataRoute.Manifest & { gcm_sender_id?: string } {
   return {
     name: 'SB19 Streaming Hub',
     short_name: 'SB19 Streaming Hub',
@@ -10,6 +10,7 @@ export default function manifest(): MetadataRoute.Manifest {
     id: '/',
     display: 'standalone',
     orientation: 'portrait',
+    gcm_sender_id: '103953800507',
     background_color: '#0f172a',
     theme_color: '#0f172a',
     icons: [
