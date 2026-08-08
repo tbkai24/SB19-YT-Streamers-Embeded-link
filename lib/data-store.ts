@@ -14,10 +14,16 @@ export function getStoredProfiles(): Profile[] {
   if (typeof window === 'undefined') return [];
   try {
     const raw = localStorage.getItem(LOCAL_STORAGE_KEY_PROFILES);
-    return raw ? JSON.parse(raw) : [];
+    if (raw) {
+      const parsed: Profile[] = JSON.parse(raw);
+      if (parsed.length > 0) {
+        return parsed.sort((a: Profile, b: Profile) => (a.display_order ?? 999) - (b.display_order ?? 999));
+      }
+    }
   } catch {
-    return [];
+    // Ignore
   }
+  return [];
 }
 
 export function saveProfiles(profiles: Profile[]) {
@@ -32,7 +38,7 @@ export async function fetchProfilesFromSupabase(): Promise<Profile[]> {
     const queryPromise = supabase
       .from('profiles')
       .select('*')
-      .order('created_at', { ascending: false });
+      .order('display_order', { ascending: true });
 
     const timeoutPromise = new Promise<{ data: any; error: any }>(resolve =>
       setTimeout(() => resolve({ data: null, error: new Error('Timeout') }), 1200)
@@ -42,13 +48,14 @@ export async function fetchProfilesFromSupabase(): Promise<Profile[]> {
 
     if (!error && data) {
       const localProfiles = getStoredProfiles();
-      const merged = (data as Profile[]).map(sp => {
+      const merged = (data as Profile[]).map((sp, idx) => {
         const lp = localProfiles.find(p => p.id === sp.id);
         return {
           ...sp,
+          display_order: lp?.display_order ?? sp.display_order ?? idx + 1,
           custom_social_links: sp.custom_social_links ?? lp?.custom_social_links ?? null,
         };
-      });
+      }).sort((a: Profile, b: Profile) => (a.display_order ?? 999) - (b.display_order ?? 999));
       saveProfiles(merged);
       return merged;
     }

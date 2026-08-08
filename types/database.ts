@@ -23,6 +23,7 @@ export interface Profile {
   seo_title: string | null;
   seo_description: string | null;
   status: ProfileStatus;
+  display_order?: number;
   views_count?: number;
   device_breakdown?: Record<string, number>;
   country_breakdown?: Record<string, number>;

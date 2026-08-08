@@ -2,13 +2,15 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { Profile } from '@/types/database';
-import { ChevronDown, Plus, Check, Layers } from 'lucide-react';
+import { ReorderProfilesModal } from './reorder-profiles-modal';
+import { ChevronDown, Plus, Check, Layers, ArrowUpDown } from 'lucide-react';
 
 interface ProfileSwitcherProps {
   profiles: Profile[];
   activeProfile: Profile | null;
   onSelectProfile: (profile: Profile) => void;
   onCreateNewProfile: () => void;
+  onRefreshData?: () => void;
 }
 
 export function ActiveProfileSwitcher({
@@ -16,8 +18,10 @@ export function ActiveProfileSwitcher({
   activeProfile,
   onSelectProfile,
   onCreateNewProfile,
+  onRefreshData,
 }: ProfileSwitcherProps) {
   const [isOpen, setIsOpen] = useState(false);
+  const [isReorderOpen, setIsReorderOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -52,9 +56,25 @@ export function ActiveProfileSwitcher({
 
       {isOpen && (
         <div className="absolute left-0 top-full mt-2 w-64 rounded-2xl bg-white p-2.5 border border-slate-200 shadow-2xl z-50 animate-fade-in text-slate-900">
-          <div className="px-3 py-1.5 text-[10px] font-black uppercase tracking-wider text-rose-600 flex items-center gap-1.5 border-b border-slate-100 mb-1.5">
-            <Layers className="w-3.5 h-3.5 text-rose-600" />
-            <span>Active Profile Workspaces</span>
+          <div className="px-3 py-1.5 text-[10px] font-black uppercase tracking-wider text-rose-600 flex items-center justify-between border-b border-slate-100 mb-1.5">
+            <div className="flex items-center gap-1.5">
+              <Layers className="w-3.5 h-3.5 text-rose-600" />
+              <span>Active Profiles</span>
+            </div>
+            {profiles.length > 1 && (
+              <button
+                type="button"
+                onClick={() => {
+                  setIsOpen(false);
+                  setIsReorderOpen(true);
+                }}
+                className="text-[10px] font-bold text-slate-600 hover:text-rose-600 flex items-center gap-1 cursor-pointer hover:bg-slate-100 px-1.5 py-0.5 rounded-md transition-colors"
+                title="Arrange profile order"
+              >
+                <ArrowUpDown className="w-3 h-3 text-rose-600" />
+                <span>Arrange</span>
+              </button>
+            )}
           </div>
 
           <div className="max-h-60 overflow-y-auto space-y-1">
@@ -100,6 +120,15 @@ export function ActiveProfileSwitcher({
           </div>
         </div>
       )}
+
+      <ReorderProfilesModal
+        isOpen={isReorderOpen}
+        profiles={profiles}
+        onClose={() => setIsReorderOpen(false)}
+        onSaved={() => {
+          if (onRefreshData) onRefreshData();
+        }}
+      />
     </div>
   );
 }

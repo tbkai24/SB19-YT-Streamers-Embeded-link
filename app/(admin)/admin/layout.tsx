@@ -219,6 +219,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               activeProfile={activeProfile}
               onSelectProfile={(p) => setActiveProfile(p)}
               onCreateNewProfile={() => setIsCreateOpen(true)}
+              onRefreshData={loadAllData}
             />
           </div>
 
