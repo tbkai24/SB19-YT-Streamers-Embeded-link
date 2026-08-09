@@ -11,6 +11,7 @@ export default function AppearanceAdminPage() {
   const { activeProfile, refreshData } = useAdminWorkspace();
 
   const [title, setTitle] = useState('');
+  const [slug, setSlug] = useState('');
   const [description, setDescription] = useState('');
   const [coverImage, setCoverImage] = useState('');
   const [profileImage, setProfileImage] = useState('');
@@ -18,16 +19,19 @@ export default function AppearanceAdminPage() {
   const [profileType, setProfileType] = useState<'embed' | 'engagement'>('embed');
   const [featuredVideoUrl, setFeaturedVideoUrl] = useState('');
   const [savedSuccess, setSavedSuccess] = useState(false);
+  const [error, setError] = useState('');
 
   useEffect(() => {
     if (activeProfile) {
       setTitle(activeProfile.title);
+      setSlug(activeProfile.slug || '');
       setDescription(activeProfile.description || '');
       setCoverImage(activeProfile.cover_image || '');
       setProfileImage(activeProfile.profile_image || '');
       setAccentColor(activeProfile.accent_color || '#e11d48');
       setProfileType(activeProfile.profile_type || 'embed');
       setFeaturedVideoUrl(activeProfile.featured_video_url || activeProfile.youtube_url || '');
+      setError('');
     }
   }, [activeProfile]);
 
@@ -35,11 +39,25 @@ export default function AppearanceAdminPage() {
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError('');
+
+    const newSlug = slug.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-');
+    if (!newSlug) {
+      setError('URL slug cannot be empty.');
+      return;
+    }
+
     const allProfiles = getStoredProfiles();
-    const finalVideoUrl = featuredVideoUrl.trim() || null;
+    const duplicate = allProfiles.find(p => p.id !== activeProfile.id && p.slug.toLowerCase() === newSlug);
+    if (duplicate) {
+      setError(`A profile with URL slug "/profile/${newSlug}" already exists. Please enter a unique slug.`);
+      return;
+    }
+
     const updatedProfile = {
       ...activeProfile,
       title: title.trim(),
+      slug: newSlug,
       description: description.trim() || null,
       cover_image: coverImage.trim() || null,
       profile_image: profileImage.trim() || null,
@@ -78,6 +96,12 @@ export default function AppearanceAdminPage() {
           <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold flex items-center gap-2">
             <Check className="w-4 h-4 text-emerald-600" />
             <span>Appearance settings updated successfully!</span>
+          </div>
+        )}
+
+        {error && (
+          <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs font-bold flex items-center gap-2">
+            <span>{error}</span>
           </div>
         )}
 
@@ -124,15 +148,37 @@ export default function AppearanceAdminPage() {
           </div>
         </div>
 
-        <div>
-          <label className="block text-xs font-bold text-slate-700 uppercase mb-1">Release Profile Title</label>
-          <input
-            type="text"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            required
-            className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-slate-900 text-xs focus:outline-none focus:border-rose-500 font-medium"
-          />
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-xs font-bold text-slate-700 uppercase mb-1">Release Profile Title *</label>
+            <input
+              type="text"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              required
+              className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-slate-900 text-xs focus:outline-none focus:border-rose-500 font-medium"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold text-slate-700 uppercase mb-1">URL Slug *</label>
+            <div className="flex items-center">
+              <span className="px-2.5 py-2 bg-slate-100 border border-r-0 border-slate-200 rounded-l-xl text-slate-500 text-xs font-bold shrink-0">
+                /profile/
+              </span>
+              <input
+                type="text"
+                value={slug}
+                onChange={(e) => {
+                  setSlug(e.target.value);
+                  setError('');
+                }}
+                required
+                className="w-full px-3 py-2 bg-white border border-slate-200 rounded-r-xl text-slate-900 text-xs focus:outline-none focus:border-rose-500 font-bold"
+                placeholder="lawless"
+              />
+            </div>
+          </div>
         </div>
 
         <div>

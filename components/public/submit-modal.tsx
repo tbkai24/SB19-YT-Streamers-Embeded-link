@@ -6,6 +6,7 @@ import { Profile, ExtractedMetadata } from '@/types/database';
 import { submitArticleLink, getStoredArticles, getStoredSubmissions } from '@/lib/data-store';
 import { normalizeUrl, isDuplicateUrl } from '@/lib/url-normalizer';
 import { X, Link2, Sparkles, CheckCircle2, AlertCircle, Loader2, FileText, Share2 } from 'lucide-react';
+import { TurnstileWidget } from './turnstile';
 
 interface SubmitModalProps {
   profile: Profile;
@@ -35,6 +36,7 @@ export function SubmitModal({ profile, isOpen, onClose, onSuccess }: SubmitModal
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
 
   useEffect(() => {
     setMounted(true);
@@ -323,7 +325,7 @@ export function SubmitModal({ profile, isOpen, onClose, onSuccess }: SubmitModal
               />
             </div>
 
-            <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-100 mt-6 sticky bottom-0 bg-white">
+            <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-100 mt-4 sticky bottom-0 bg-white">
               <button
                 type="button"
                 onClick={onClose}
