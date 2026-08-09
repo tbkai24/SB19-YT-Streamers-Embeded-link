@@ -105,13 +105,40 @@ export function SubmitModal({ profile, isOpen, onClose, onSuccess }: SubmitModal
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!url.trim()) return;
+
+    if (!turnstileToken) {
+      setErrorMsg('Please complete the bot security verification check.');
+      return;
+    }
 
     setSubmitting(true);
     setErrorMsg(null);
     setSuccessMsg(null);
+
+    try {
+      // Canonical server-side Turnstile siteverify
+      const verifyRes = await fetch('/api/verify-turnstile', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token: turnstileToken }),
+      });
+      const verifyData = await verifyRes.json();
+
+      if (!verifyRes.ok || !verifyData.success) {
+        throw new Error(verifyData.error || 'Turnstile verification failed.');
+      }
+    } catch (err: any) {
+      setErrorMsg(err.message || 'Security verification failed. Please try again.');
+      setTurnstileToken(null);
+      if (typeof window !== 'undefined' && window.turnstile) {
+        setTimeout(() => window.turnstile?.reset(), 0);
+      }
+      setSubmitting(false);
+      return;
+    }
 
     const platformItem = SOCIAL_PLATFORMS.find(p => p.value === selectedPlatform);
     const platformName = platformItem ? platformItem.label : selectedPlatform;
@@ -127,12 +154,17 @@ export function SubmitModal({ profile, isOpen, onClose, onSuccess }: SubmitModal
     setSubmitting(false);
     if (!result.success) {
       setErrorMsg(result.message);
+      if (typeof window !== 'undefined' && window.turnstile) {
+        setTimeout(() => window.turnstile?.reset(), 0);
+      }
+      setTurnstileToken(null);
     } else {
       setSuccessMsg(result.message);
       setUrl('');
       setTitle('');
       setNotes('');
       setMetadata(null);
+      setTurnstileToken(null);
       if (onSuccess) onSuccess();
     }
   };
@@ -324,6 +356,13 @@ export function SubmitModal({ profile, isOpen, onClose, onSuccess }: SubmitModal
                 className="w-full p-3 bg-white border border-slate-300 rounded-xl text-slate-900 placeholder-slate-400 focus:outline-none focus:border-rose-600 focus:ring-4 focus:ring-rose-500/10 text-xs font-semibold transition-all shadow-xs resize-none"
               />
             </div>
+
+            {/* Cloudflare Turnstile Bot Verification */}
+            <TurnstileWidget
+              onVerify={(token) => setTurnstileToken(token)}
+              onError={() => setTurnstileToken(null)}
+              onExpire={() => setTurnstileToken(null)}
+            />
 
             <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-100 mt-4 sticky bottom-0 bg-white">
               <button
