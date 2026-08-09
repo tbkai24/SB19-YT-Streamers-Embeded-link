@@ -6,7 +6,7 @@ import { Profile, ExtractedMetadata } from '@/types/database';
 import { submitArticleLink, getStoredArticles, getStoredSubmissions } from '@/lib/data-store';
 import { normalizeUrl, isDuplicateUrl } from '@/lib/url-normalizer';
 import { X, Link2, Sparkles, CheckCircle2, AlertCircle, Loader2, FileText, Share2 } from 'lucide-react';
-import { TurnstileWidget } from './turnstile';
+import { TurnstileWidget } from '@/components/public/turnstile';
 
 interface SubmitModalProps {
   profile: Profile;
@@ -360,7 +360,7 @@ export function SubmitModal({ profile, isOpen, onClose, onSuccess }: SubmitModal
             {/* Cloudflare Turnstile Bot Verification */}
             <TurnstileWidget
               siteKey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY || '0x4AAAAAADvfvehdsxMR16Ud'}
-              onVerify={(token) => setTurnstileToken(token)}
+              onVerify={(token: string) => setTurnstileToken(token)}
               onError={() => setTurnstileToken(null)}
               onExpire={() => setTurnstileToken(null)}
             />
