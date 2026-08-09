@@ -45,7 +45,7 @@ function getDailyArticlePick(articles: Article[]): { article: Article; quote: st
   return { article, quote: decodeHtmlEntities(quote) };
 }
 
-function ArticleOfTheDayCard({ articles }: { articles: Article[] }) {
+function ArticleOfTheDayCard({ articles, isEngagementProfile = false }: { articles: Article[]; isEngagementProfile?: boolean }) {
   const dailyPick = getDailyArticlePick(articles);
   const [displayQuote, setDisplayQuote] = useState<string>(dailyPick?.quote || '');
   const [isTranslating, setIsTranslating] = useState<boolean>(false);
@@ -73,27 +73,27 @@ function ArticleOfTheDayCard({ articles }: { articles: Article[] }) {
   if (!dailyPick) return null;
 
   return (
-    <div className="w-full mt-4 p-4 sm:p-5 rounded-2xl bg-gradient-to-br from-amber-500/10 via-rose-500/5 to-amber-500/10 border border-amber-300/40 shadow-sm relative overflow-hidden group">
+    <div className="w-full mt-4 p-4 sm:p-5 rounded-2xl bg-gradient-to-br from-purple-500/10 via-rose-500/5 to-purple-500/10 border border-purple-300/40 shadow-sm relative overflow-hidden group">
       <div className="flex items-center justify-between gap-2 mb-2">
-        <span className="px-2.5 py-0.5 rounded-full bg-amber-500 text-white text-[10px] font-black uppercase tracking-wider flex items-center gap-1 shadow-xs">
+        <span className="px-2.5 py-0.5 rounded-full bg-purple-600 text-white text-[10px] font-black uppercase tracking-wider flex items-center gap-1 shadow-xs">
           <Sparkles className="w-3 h-3 text-white" />
-          <span>Article of the Day</span>
+          <span>{isEngagementProfile ? 'Engagement Pick of the Day' : 'Article of the Day'}</span>
         </span>
         {isTranslating && (
-          <span className="text-[10px] text-amber-700/80 font-bold animate-pulse flex items-center gap-1">
-            <Globe className="w-3 h-3 text-amber-600" />
+          <span className="text-[10px] text-purple-700/80 font-bold animate-pulse flex items-center gap-1">
+            <Globe className="w-3 h-3 text-purple-600" />
             <span>Translating...</span>
           </span>
         )}
       </div>
 
-      <div className="relative pl-3 border-l-2 border-amber-400 my-2">
+      <div className="relative pl-3 border-l-2 border-purple-400 my-2">
         <p className="text-xs sm:text-sm italic font-serif font-medium text-slate-800 leading-relaxed">
           &quot;{displayQuote}&quot;
         </p>
       </div>
 
-      <div className="flex items-center justify-between gap-2 mt-3 pt-2 border-t border-amber-200/40">
+      <div className="flex items-center justify-between gap-2 mt-3 pt-2 border-t border-purple-200/40">
         <span className="text-[11px] font-extrabold text-slate-700 truncate">
           {decodeHtmlEntities(dailyPick.article.title)}
         </span>
@@ -101,9 +101,9 @@ function ArticleOfTheDayCard({ articles }: { articles: Article[] }) {
           href={dailyPick.article.article_url}
           target="_blank"
           rel="noopener noreferrer"
-          className="px-3 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-white text-xs font-black shrink-0 transition-transform active:scale-95 shadow-xs flex items-center gap-1"
+          className="px-3 py-1.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white text-xs font-black shrink-0 transition-transform active:scale-95 shadow-xs flex items-center gap-1"
         >
-          <span>Stream Pick</span>
+          <span>{isEngagementProfile ? 'Engage Pick' : 'Stream Pick'}</span>
           <ExternalLink className="w-3 h-3" />
         </a>
       </div>
@@ -286,23 +286,6 @@ export default function PublicProfilePage({ params }: ProfilePageProps) {
 
           {/* Social Icons */}
           <SocialLinks profile={profile} />
-
-          {/* Floating Country Streamers Badge */}
-          <div className="mt-3">
-            <button
-              onClick={() => setIsCountryModalOpen(true)}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-2xl bg-white hover:bg-rose-50 hover:border-rose-300 text-slate-800 text-xs font-extrabold transition-all border border-slate-200 shadow-sm active:scale-95"
-            >
-              <Globe className="w-4 h-4 text-rose-500 animate-pulse" />
-              <span>Global Streamers:</span>
-              <div className="flex items-center gap-0.5">
-                {Object.keys(profile.country_breakdown || {}).slice(0, 4).map(c => (
-                  <span key={c} className="text-base leading-none">{getCountryFlagEmoji(c)}</span>
-                ))}
-                <span className="text-[11px] text-slate-500 font-bold ml-1">View Breakdown →</span>
-              </div>
-            </button>
-          </div>
         </div>
 
         {/* Featured Official MV Video Player */}
@@ -328,28 +311,91 @@ export default function PublicProfilePage({ params }: ProfilePageProps) {
           );
         })()}
 
-        {/* Daily Highlight Quote & Article of the Day Showcase */}
-        <ArticleOfTheDayCard articles={articles} />
+        {/* Daily Highlight Quote & Article / Engagement Pick of the Day */}
+        <ArticleOfTheDayCard articles={articles} isEngagementProfile={profile.profile_type === 'engagement'} />
 
-        {/* Streaming Articles Section */}
-        <div className="w-full mt-4 space-y-4">
+        {/* Streaming Articles & Social Engagement Links Section */}
+        <div className="w-full mt-4 space-y-6">
           <div className="flex items-center justify-between px-1 mb-2">
             <span className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
-              <Radio className="w-3.5 h-3.5 text-rose-600" />
-              Streaming Articles ({articles.length})
+              {profile.profile_type === 'engagement' ? (
+                <>
+                  <Sparkles className="w-3.5 h-3.5 text-purple-600" />
+                  <span>Social Engagement Campaigns ({articles.length})</span>
+                </>
+              ) : (
+                <>
+                  <Radio className="w-3.5 h-3.5 text-rose-600" />
+                  <span>Streaming Articles ({articles.length})</span>
+                </>
+              )}
             </span>
           </div>
 
           {articles.length === 0 ? (
             <div className="p-8 text-center glass-panel rounded-2xl border border-slate-200 text-slate-500 text-xs font-medium">
-              No verified streaming articles published for {profile.title} yet.
+              No verified links published for {profile.title} yet.
             </div>
+          ) : profile.profile_type === 'engagement' ? (
+            (() => {
+              // Group engagement articles cleanly by platform
+              const groups: Record<string, { label: string; icon: string; articles: Article[] }> = {
+                tiktok: { label: 'TikTok Campaigns', icon: '🎵', articles: [] },
+                facebook: { label: 'Facebook Engagement Links', icon: '📘', articles: [] },
+                x: { label: 'X (Twitter) Boost Links', icon: '🐦', articles: [] },
+                instagram: { label: 'Instagram Posts', icon: '📸', articles: [] },
+                youtube: { label: 'YouTube Community & Shorts', icon: '🔴', articles: [] },
+                threads: { label: 'Threads Posts', icon: '🧵', articles: [] },
+                other: { label: 'Other Social Campaigns', icon: '🚀', articles: [] },
+              };
+
+              articles.forEach(art => {
+                const site = (art.website_name || '').toLowerCase();
+                const url = (art.article_url || '').toLowerCase();
+                if (site.includes('tiktok') || url.includes('tiktok.com')) groups.tiktok.articles.push(art);
+                else if (site.includes('facebook') || site.includes('fb') || url.includes('facebook.com')) groups.facebook.articles.push(art);
+                else if (site.includes('x') || site.includes('twitter') || url.includes('twitter.com') || url.includes('x.com')) groups.x.articles.push(art);
+                else if (site.includes('instagram') || site.includes('ig') || url.includes('instagram.com')) groups.instagram.articles.push(art);
+                else if (site.includes('youtube') || site.includes('yt') || url.includes('youtube.com') || url.includes('youtu.be')) groups.youtube.articles.push(art);
+                else if (site.includes('threads') || url.includes('threads.net')) groups.threads.articles.push(art);
+                else groups.other.articles.push(art);
+              });
+
+              return (
+                <div className="space-y-6">
+                  {Object.entries(groups).map(([gKey, group]) => {
+                    if (group.articles.length === 0) return null;
+                    return (
+                      <div key={gKey} className="space-y-3">
+                        <div className="flex items-center gap-2 px-1 pb-1 border-b border-slate-200">
+                          <span className="text-sm leading-none">{group.icon}</span>
+                          <h3 className="text-xs font-black text-slate-800 uppercase tracking-wider">
+                            {group.label} ({group.articles.length})
+                          </h3>
+                        </div>
+                        <div className="space-y-3">
+                          {group.articles.map((article) => (
+                            <ArticleCard
+                              key={article.id}
+                              article={article}
+                              accentColor={profile.accent_color || '#e11d48'}
+                              isEngagementProfile={true}
+                            />
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              );
+            })()
           ) : (
             articles.map((article) => (
               <ArticleCard
                 key={article.id}
                 article={article}
                 accentColor={profile.accent_color || '#e11d48'}
+                isEngagementProfile={false}
               />
             ))
           )}
@@ -360,7 +406,11 @@ export default function PublicProfilePage({ params }: ProfilePageProps) {
             className="w-full mt-6 py-3.5 px-4 rounded-2xl bg-white border border-slate-200 hover:border-rose-400 text-slate-800 hover:text-rose-600 font-bold text-xs flex items-center justify-center gap-2 transition-all duration-200 group shadow-sm hover:shadow-md"
           >
             <PlusCircle className="w-4 h-4 text-rose-600 group-hover:scale-110 transition-transform" />
-            <span>Submit Article Link for {profile.title}</span>
+            <span>
+              {profile.profile_type === 'engagement'
+                ? `Submit Engagement Link for ${profile.title}`
+                : `Submit Article Link for ${profile.title}`}
+            </span>
           </button>
         </div>
 

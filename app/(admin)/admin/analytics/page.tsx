@@ -61,6 +61,7 @@ export default function AnalyticsAdminPage() {
   const [seoTitle, setSeoTitle] = useState('');
   const [seoDescription, setSeoDescription] = useState('');
   const [savedSuccess, setSavedSuccess] = useState(false);
+  const [selectedPlatformFilter, setSelectedPlatformFilter] = useState<string>('all');
 
   // Modal open states for full screen Overview of Countries and Traffic Platforms
   const [isCountryModalOpen, setIsCountryModalOpen] = useState(false);
@@ -537,45 +538,85 @@ export default function AnalyticsAdminPage() {
         </div>
       </div>
 
-      {/* Individual Article Link Performance Breakdown Table */}
-      <div className="p-6 rounded-2xl glass-panel border border-slate-200 bg-white space-y-4 shadow-xs">
-        <div className="flex items-center justify-between border-b border-slate-200 pb-3">
-          <h2 className="text-sm font-bold text-slate-900 flex items-center gap-2">
-            <MousePointerClick className="w-4 h-4 text-emerald-600" />
-            <span>Per-Article Link Performance</span>
-          </h2>
-          <span className="text-xs text-slate-500 font-semibold">Real-time click counts</span>
-        </div>
+      {/* Individual Article / Social Link Performance Breakdown Table */}
+      {(() => {
+        const availablePlatforms = Array.from(
+          new Set(profileArticles.map(a => (a.website_name || 'Web Article').trim()))
+        ).sort();
 
-        {profileArticles.length === 0 ? (
-          <p className="text-xs text-slate-500 font-medium py-4 text-center">
-            No published articles available yet for {activeProfile.title}.
-          </p>
-        ) : (
-          <div className="space-y-2.5">
-            {profileArticles.map((art) => {
-              const artClicks = timeRange === 'all'
-                ? (art.clicks_count || 0)
-                : (clickEventsInRange.length > 0
-                    ? clickEventsInRange.filter(e => e.article_id === art.id).length
-                    : Math.round(((art.clicks_count || 0) / (totalClicks || 1)) * displayClicks));
+        const filteredProfileArticles = profileArticles.filter(art => {
+          if (activeProfile.profile_type !== 'engagement' || selectedPlatformFilter === 'all') return true;
+          return (art.website_name || '').trim().toLowerCase() === selectedPlatformFilter.toLowerCase();
+        });
 
-              return (
-                <div key={art.id} className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-between gap-4">
-                  <div className="min-w-0 flex-1">
-                    <div className="text-xs font-bold text-slate-900 truncate">{art.title}</div>
-                    <div className="text-[11px] text-slate-500 font-medium truncate mt-0.5">{art.website_name} • {art.article_url}</div>
-                  </div>
-                  <div className="px-3 py-1.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-black shrink-0 flex items-center gap-1.5 shadow-xs">
-                    <MousePointerClick className="w-3.5 h-3.5 text-emerald-600" />
-                    <span>{artClicks.toLocaleString()} Clicks</span>
-                  </div>
+        return (
+          <div className="p-6 rounded-2xl glass-panel border border-slate-200 bg-white space-y-4 shadow-xs">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-200 pb-3 gap-2">
+              <h2 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                <MousePointerClick className="w-4 h-4 text-emerald-600" />
+                <span>{activeProfile.profile_type === 'engagement' ? 'Per-Platform Link Performance' : 'Per-Article Link Performance'}</span>
+              </h2>
+              
+              {activeProfile.profile_type === 'engagement' && (
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-slate-500 font-semibold">Filter Platform:</span>
+                  <select
+                    value={selectedPlatformFilter}
+                    onChange={(e) => setSelectedPlatformFilter(e.target.value)}
+                    className="px-3 py-1.5 bg-slate-100 border border-slate-200 rounded-xl text-slate-800 text-xs font-bold focus:outline-none focus:border-rose-500 transition-all cursor-pointer shadow-xs"
+                  >
+                    <option value="all">All Platforms ({profileArticles.length} links)</option>
+                    {availablePlatforms.map((plat) => {
+                      const count = profileArticles.filter(a => (a.website_name || '').trim().toLowerCase() === plat.toLowerCase()).length;
+                      return (
+                        <option key={plat} value={plat}>
+                          {plat} ({count} {count === 1 ? 'link' : 'links'})
+                        </option>
+                      );
+                    })}
+                  </select>
                 </div>
-              );
-            })}
+              )}
+            </div>
+
+            {filteredProfileArticles.length === 0 ? (
+              <p className="text-xs text-slate-500 font-medium py-4 text-center">
+                {profileArticles.length === 0
+                  ? `No published links available yet for ${activeProfile.title}.`
+                  : `No links found for platform "${selectedPlatformFilter}".`}
+              </p>
+            ) : (
+              <div className="space-y-2.5">
+                {filteredProfileArticles.map((art) => {
+                  const artClicks = timeRange === 'all'
+                    ? (art.clicks_count || 0)
+                    : (clickEventsInRange.length > 0
+                        ? clickEventsInRange.filter(e => e.article_id === art.id).length
+                        : Math.round(((art.clicks_count || 0) / (totalClicks || 1)) * displayClicks));
+
+                  return (
+                    <div key={art.id} className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-between gap-4">
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2 mb-0.5">
+                          <span className="px-2 py-0.5 rounded-md bg-white border border-slate-200 font-black text-[10px] text-slate-700 uppercase tracking-wider shadow-2xs">
+                            {art.website_name}
+                          </span>
+                          <span className="text-xs font-bold text-slate-900 truncate">{art.title}</span>
+                        </div>
+                        <div className="text-[11px] text-slate-500 font-medium truncate">{art.article_url}</div>
+                      </div>
+                      <div className="px-3 py-1.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-black shrink-0 flex items-center gap-1.5 shadow-xs">
+                        <MousePointerClick className="w-3.5 h-3.5 text-emerald-600" />
+                        <span>{artClicks.toLocaleString()} Clicks</span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
-        )}
-      </div>
+        );
+      })()}
 
       <form onSubmit={handleSaveSeo} className="p-6 rounded-2xl glass-panel border border-slate-200 bg-white space-y-4 shadow-xs">
         <div className="flex items-center gap-2 border-b border-slate-200 pb-3">

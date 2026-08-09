@@ -734,7 +734,8 @@ export default function ArticlesAdminPage() {
             <form id="article-admin-form" onSubmit={handleSave} className="flex-1 overflow-y-auto p-6 sm:p-7 space-y-5">
               <div>
                 <label className="block text-xs font-black text-slate-900 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
-                  <Link2 className="w-3.5 h-3.5 text-rose-600" /> Article Link (URL) *
+                  <Link2 className="w-3.5 h-3.5 text-rose-600" />
+                  {activeProfile.profile_type === 'engagement' ? 'Social Engagement Link (URL) *' : 'Article Link (URL) *'}
                 </label>
                 <div className="relative flex items-center">
                   <input
@@ -743,7 +744,7 @@ export default function ArticlesAdminPage() {
                     value={url}
                     onChange={(e) => setUrl(e.target.value)}
                     onBlur={handleFetchMetadata}
-                    placeholder="https://..."
+                    placeholder={activeProfile.profile_type === 'engagement' ? 'https://www.tiktok.com/... or https://facebook.com/...' : 'https://...'}
                     className="w-full pl-4 pr-24 py-2.5 bg-white border border-slate-300 rounded-xl text-slate-900 text-xs font-bold focus:outline-none focus:border-rose-600 shadow-xs"
                   />
                   <button
@@ -759,34 +760,34 @@ export default function ArticlesAdminPage() {
                 {url.trim() && !editingArticle && profileArticles.some(a => a.canonical_url === normalizeUrl(url) || a.article_url.trim() === url.trim()) && (
                   <p className="text-[11px] text-rose-600 font-extrabold mt-1.5 flex items-center gap-1 animate-fade-in">
                     <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
-                    <span>This article URL has already been added to {activeProfile.title}!</span>
+                    <span>This URL has already been added to {activeProfile.title}!</span>
                   </p>
                 )}
               </div>
 
               <div>
                 <label className="block text-xs font-black text-slate-900 uppercase tracking-wider mb-1.5">
-                  Article Title *
+                  {activeProfile.profile_type === 'engagement' ? 'Campaign Title / Post Caption *' : 'Article Title *'}
                 </label>
                 <input
                   type="text"
                   required
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
-                  placeholder="Article Headline..."
+                  placeholder={activeProfile.profile_type === 'engagement' ? 'e.g. TikTok Dance Challenge' : 'Article Headline...'}
                   className="w-full px-4 py-2.5 bg-white border border-slate-300 rounded-xl text-slate-900 text-xs font-bold focus:outline-none focus:border-rose-600 shadow-xs"
                 />
               </div>
 
               <div>
                 <label className="block text-xs font-black text-slate-900 uppercase tracking-wider mb-1.5">
-                  Website Name (Outlet)
+                  {activeProfile.profile_type === 'engagement' ? 'Social Platform Name' : 'Website Name (Outlet)'}
                 </label>
                 <input
                   type="text"
                   value={websiteName}
                   onChange={(e) => setWebsiteName(e.target.value)}
-                  placeholder="e.g. Billboard Philippines, ABS-CBN News"
+                  placeholder={activeProfile.profile_type === 'engagement' ? 'e.g. TikTok, Facebook, X (Twitter)' : 'e.g. Billboard Philippines, ABS-CBN News'}
                   className="w-full px-4 py-2.5 bg-white border border-slate-300 rounded-xl text-slate-900 text-xs font-bold focus:outline-none focus:border-rose-600 shadow-xs"
                 />
               </div>

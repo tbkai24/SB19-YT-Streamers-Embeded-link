@@ -23,6 +23,7 @@ export interface Profile {
   seo_title: string | null;
   seo_description: string | null;
   status: ProfileStatus;
+  profile_type?: 'embed' | 'engagement';
   display_order?: number;
   views_count?: number;
   device_breakdown?: Record<string, number>;

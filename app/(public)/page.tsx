@@ -167,31 +167,6 @@ export default function PublicHomePage() {
                       </div>
                     </div>
                   </Link>
-
-                  {/* Floating Country Streamers Badge Trigger */}
-                  <div className="mt-3 pt-2.5 border-t border-slate-100 flex items-center justify-between">
-                    <button
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        setActiveCountryProfile(profile);
-                      }}
-                      className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-slate-100 hover:bg-rose-50 hover:border-rose-200 text-slate-700 hover:text-rose-700 text-[11px] font-bold transition-all border border-slate-200/80 shadow-2xs active:scale-95"
-                    >
-                      <Globe className="w-3.5 h-3.5 text-rose-500" />
-                      <span>Streamers:</span>
-                      {topCountries.length > 0 ? (
-                        <div className="flex items-center gap-0.5">
-                          {topCountries.map(c => (
-                            <span key={c} className="text-sm leading-none">{getCountryFlagEmoji(c)}</span>
-                          ))}
-                          <span className="text-[10px] text-slate-500 ml-0.5">View breakdown →</span>
-                        </div>
-                      ) : (
-                        <span className="text-slate-500 font-medium">Global →</span>
-                      )}
-                    </button>
-                  </div>
                 </div>
               );
             })

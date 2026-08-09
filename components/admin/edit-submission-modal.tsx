@@ -138,7 +138,7 @@ export function EditSubmissionModal({ submission, isOpen, onClose, onSaved }: Ed
                 ) : (
                   <Sparkles className="w-3.5 h-3.5 text-rose-600" />
                 )}
-                <span>Auto-Fetch</span>
+                <span>Auto-Fill</span>
               </button>
             </div>
           </div>

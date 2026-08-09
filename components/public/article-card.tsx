@@ -10,11 +10,16 @@ import { ExternalLink, PlayCircle } from 'lucide-react';
 interface ArticleCardProps {
   article: Article;
   accentColor?: string;
+  isEngagementProfile?: boolean;
 }
 
-export function ArticleCard({ article, accentColor = '#e11d48' }: ArticleCardProps) {
+export function ArticleCard({ article, accentColor = '#e11d48', isEngagementProfile = false }: ArticleCardProps) {
   const [imageError, setImageError] = React.useState(false);
   const brandStyle = getWebsiteBadgeStyle(article.website_name);
+  const cleanSite = (article.website_name || '').toLowerCase();
+  
+  const isSocialPlatform = isEngagementProfile || ['tiktok', 'facebook', 'fb', 'x', 'twitter', 'instagram', 'ig', 'threads'].some(p => cleanSite.includes(p));
+  const ctaText = isEngagementProfile ? (cleanSite.includes('tiktok') ? 'TikTok Boost' : cleanSite.includes('facebook') ? 'Engage Post' : cleanSite.includes('x') || cleanSite.includes('twitter') ? 'Engage Tweet' : 'Engage Now') : 'Open';
 
   return (
     <a
@@ -72,9 +77,9 @@ export function ArticleCard({ article, accentColor = '#e11d48' }: ArticleCardPro
         <div className="shrink-0 flex items-center justify-end sm:self-center w-full sm:w-auto mt-2 sm:mt-0">
           <div 
             className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold text-white transition-all group-hover:translate-x-0.5 shadow-sm"
-            style={{ backgroundColor: accentColor }}
+            style={{ backgroundColor: isSocialPlatform ? (brandStyle.bg === '#ffff00' || brandStyle.text === '#00f2fe' ? '#0f172a' : brandStyle.bg) : accentColor }}
           >
-            <span>Open</span>
+            <span>{ctaText}</span>
             <ExternalLink className="w-3.5 h-3.5" />
           </div>
         </div>

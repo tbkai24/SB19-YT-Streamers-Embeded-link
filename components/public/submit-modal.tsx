@@ -1,10 +1,11 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { Profile, ExtractedMetadata } from '@/types/database';
 import { submitArticleLink, getStoredArticles, getStoredSubmissions } from '@/lib/data-store';
 import { normalizeUrl, isDuplicateUrl } from '@/lib/url-normalizer';
-import { X, Link2, Sparkles, CheckCircle2, AlertCircle, Loader2, FileText } from 'lucide-react';
+import { X, Link2, Sparkles, CheckCircle2, AlertCircle, Loader2, FileText, Share2 } from 'lucide-react';
 
 interface SubmitModalProps {
   profile: Profile;
@@ -13,17 +14,45 @@ interface SubmitModalProps {
   onSuccess?: () => void;
 }
 
+const SOCIAL_PLATFORMS = [
+  { value: 'tiktok', label: 'TikTok' },
+  { value: 'facebook', label: 'Facebook' },
+  { value: 'x', label: 'X (Twitter)' },
+  { value: 'instagram', label: 'Instagram' },
+  { value: 'youtube', label: 'YouTube' },
+  { value: 'threads', label: 'Threads' },
+  { value: 'other', label: 'Other Social Platform' },
+] as const;
+
 export function SubmitModal({ profile, isOpen, onClose, onSuccess }: SubmitModalProps) {
+  const [mounted, setMounted] = useState(false);
   const [url, setUrl] = useState('');
   const [title, setTitle] = useState('');
   const [notes, setNotes] = useState('');
+  const [selectedPlatform, setSelectedPlatform] = useState<string>('tiktok');
   const [loadingMetadata, setLoadingMetadata] = useState(false);
   const [metadata, setMetadata] = useState<ExtractedMetadata | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
-  if (!isOpen) return null;
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (!isOpen || !mounted) return null;
+
+  const isEngagement = profile.profile_type === 'engagement';
+
+  const autoDetectPlatform = (inputUrl: string) => {
+    const lower = inputUrl.toLowerCase();
+    if (lower.includes('tiktok.com')) setSelectedPlatform('tiktok');
+    else if (lower.includes('facebook.com') || lower.includes('fb.com') || lower.includes('fb.watch')) setSelectedPlatform('facebook');
+    else if (lower.includes('twitter.com') || lower.includes('x.com')) setSelectedPlatform('x');
+    else if (lower.includes('instagram.com')) setSelectedPlatform('instagram');
+    else if (lower.includes('youtube.com') || lower.includes('youtu.be')) setSelectedPlatform('youtube');
+    else if (lower.includes('threads.net')) setSelectedPlatform('threads');
+  };
 
   const checkDuplicate = (inputUrl: string): boolean => {
     if (!inputUrl.trim()) return false;
@@ -33,13 +62,13 @@ export function SubmitModal({ profile, isOpen, onClose, onSuccess }: SubmitModal
 
     const publishedUrls = articles.map(a => a.canonical_url || a.article_url);
     if (isDuplicateUrl(normalized, publishedUrls)) {
-      setErrorMsg('This article link already exists in the directory!');
+      setErrorMsg('This link already exists in the directory!');
       return true;
     }
 
     const pendingUrls = submissions.filter(s => s.status === 'pending').map(s => s.canonical_url || s.article_url);
     if (isDuplicateUrl(normalized, pendingUrls)) {
-      setErrorMsg('This article link is already submitted and pending admin review!');
+      setErrorMsg('This link is already submitted and pending admin review!');
       return true;
     }
 
@@ -48,6 +77,7 @@ export function SubmitModal({ profile, isOpen, onClose, onSuccess }: SubmitModal
 
   const handleFetchMetadata = async () => {
     if (!url.trim()) return;
+    autoDetectPlatform(url);
     if (checkDuplicate(url)) return;
 
     setLoadingMetadata(true);
@@ -63,11 +93,11 @@ export function SubmitModal({ profile, isOpen, onClose, onSuccess }: SubmitModal
         throw new Error(data.error || 'Could not fetch URL metadata');
       }
       setMetadata(data);
-      if (data.title && (!title || title.trim() === '')) {
+      if (data.title) {
         setTitle(data.title);
       }
-    } catch (err: any) {
-      setErrorMsg('Could not fetch auto-preview metadata. You can still enter title and submit.');
+    } catch {
+      setErrorMsg('Could not auto-fill metadata preview. You can still enter title manually.');
     } finally {
       setLoadingMetadata(false);
     }
@@ -81,9 +111,13 @@ export function SubmitModal({ profile, isOpen, onClose, onSuccess }: SubmitModal
     setErrorMsg(null);
     setSuccessMsg(null);
 
+    const platformItem = SOCIAL_PLATFORMS.find(p => p.value === selectedPlatform);
+    const platformName = platformItem ? platformItem.label : selectedPlatform;
+
     const mergedMetadata = {
       ...(metadata || {}),
-      title: title.trim() || metadata?.title || 'Submitted Article Link',
+      title: title.trim() || metadata?.title || (isEngagement ? `${platformName} Post` : 'Submitted Link'),
+      websiteName: isEngagement ? platformName : (metadata?.websiteName || 'Web Article'),
     };
 
     const result = submitArticleLink(profile.id, url, notes, mergedMetadata as Partial<ExtractedMetadata>);
@@ -101,23 +135,27 @@ export function SubmitModal({ profile, isOpen, onClose, onSuccess }: SubmitModal
     }
   };
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md animate-fade-in">
-      <div className="relative w-full max-w-lg rounded-3xl bg-white p-6 sm:p-8 border border-slate-200 shadow-2xl overflow-hidden text-slate-900">
-        {/* Header */}
-        <div className="flex items-center justify-between pb-4 border-b border-slate-100">
-          <div className="flex items-center gap-2.5">
+  return createPortal(
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 sm:p-6 bg-slate-900/60 backdrop-blur-md animate-fade-in">
+      <div className="relative w-full max-w-lg max-h-[90vh] flex flex-col rounded-3xl bg-white border border-slate-200 shadow-2xl text-slate-900 overflow-hidden shrink-0">
+        {/* Fixed Header */}
+        <div className="flex items-center justify-between p-6 sm:p-7 pb-4 sm:pb-5 border-b border-slate-100 bg-white shrink-0">
+          <div className="flex items-center gap-2.5 min-w-0 pr-2">
             <div 
               className="w-3.5 h-3.5 rounded-full shrink-0 shadow-xs border border-slate-300"
               style={{ backgroundColor: profile.accent_color || '#e11d48' }}
             />
-            <h2 className="text-lg font-black text-slate-900">
-              Suggest Article for <span style={{ color: profile.accent_color || '#e11d48' }}>{profile.title}</span>
+            <h2 className="text-lg font-black text-slate-900 truncate">
+              {isEngagement ? (
+                <>Suggest Engagement Link for <span style={{ color: profile.accent_color || '#e11d48' }}>{profile.title}</span></>
+              ) : (
+                <>Suggest Article for <span style={{ color: profile.accent_color || '#e11d48' }}>{profile.title}</span></>
+              )}
             </h2>
           </div>
           <button
             onClick={onClose}
-            className="p-2 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer"
+            className="p-2 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer shrink-0"
           >
             <X className="w-5 h-5" />
           </button>
@@ -125,7 +163,7 @@ export function SubmitModal({ profile, isOpen, onClose, onSuccess }: SubmitModal
 
         {/* Success View State */}
         {successMsg ? (
-          <div className="mt-6 text-center py-6 px-4 space-y-4 animate-fade-in">
+          <div className="flex-1 overflow-y-auto p-6 sm:p-8 text-center py-8 space-y-4 animate-fade-in">
             <div className="w-16 h-16 rounded-3xl bg-emerald-50 border border-emerald-200 text-emerald-600 flex items-center justify-center mx-auto shadow-sm animate-bounce">
               <CheckCircle2 className="w-9 h-9" />
             </div>
@@ -155,8 +193,8 @@ export function SubmitModal({ profile, isOpen, onClose, onSuccess }: SubmitModal
             </div>
           </div>
         ) : (
-          /* Form Body */
-          <form onSubmit={handleSubmit} className="mt-5 space-y-4">
+          /* Scrollable Form Body */
+          <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6 sm:p-7 space-y-4">
             {errorMsg && (
               <div className="p-3.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs font-bold flex items-start gap-2.5 animate-fade-in">
                 <AlertCircle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
@@ -166,7 +204,8 @@ export function SubmitModal({ profile, isOpen, onClose, onSuccess }: SubmitModal
 
             <div>
               <label className="block text-xs font-black text-slate-900 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
-                <Link2 className="w-3.5 h-3.5 text-rose-600" /> Article Link (URL) <span className="text-rose-600">*</span>
+                <Link2 className="w-3.5 h-3.5 text-rose-600" />
+                {isEngagement ? 'Social Engagement Link (URL)' : 'Article Link (URL)'} <span className="text-rose-600">*</span>
               </label>
               <div className="relative flex items-center">
                 <input
@@ -176,11 +215,12 @@ export function SubmitModal({ profile, isOpen, onClose, onSuccess }: SubmitModal
                   onChange={(e) => {
                     const val = e.target.value;
                     setUrl(val);
+                    autoDetectPlatform(val);
                     setErrorMsg(null);
                     checkDuplicate(val);
                   }}
                   onBlur={handleFetchMetadata}
-                  placeholder="https://example.com/sb19-article-link"
+                  placeholder={isEngagement ? 'https://www.tiktok.com/@officialsb19/video/... or https://facebook.com/...' : 'https://example.com/sb19-article-link'}
                   className="w-full pl-4 pr-24 py-2.5 bg-white border border-slate-300 rounded-xl text-slate-900 placeholder-slate-400 focus:outline-none focus:border-rose-600 focus:ring-4 focus:ring-rose-500/10 text-xs font-bold transition-all shadow-xs"
                 />
                 <button
@@ -194,23 +234,51 @@ export function SubmitModal({ profile, isOpen, onClose, onSuccess }: SubmitModal
                   ) : (
                     <Sparkles className="w-3.5 h-3.5 text-rose-600" />
                   )}
-                  <span>Auto-Fetch</span>
+                  <span>Auto-Fill</span>
                 </button>
               </div>
               <p className="text-[11px] text-slate-500 mt-1 font-medium">
-                Article must contain an embedded YouTube video.
+                {isEngagement 
+                  ? 'Paste a TikTok, Facebook, X/Twitter, or Instagram post link to add to the engagement hub.'
+                  : 'Paste a news, interview, or review link about SB19 for admin verification.'}
               </p>
             </div>
 
+            {/* Social Platform Type Selection for Social Media Profiles */}
+            {isEngagement && (
+              <div>
+                <label className="block text-xs font-black text-slate-900 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
+                  <Share2 className="w-3.5 h-3.5 text-purple-600" /> Social Media Type <span className="text-purple-600">*</span>
+                </label>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                  {SOCIAL_PLATFORMS.map((plat) => (
+                    <button
+                      key={plat.value}
+                      type="button"
+                      onClick={() => setSelectedPlatform(plat.value)}
+                      className={`px-3 py-2 rounded-xl border text-xs font-bold transition-all cursor-pointer text-center justify-center ${
+                        selectedPlatform === plat.value
+                          ? 'bg-purple-600 text-white border-purple-600 shadow-xs'
+                          : 'bg-white border-slate-200 text-slate-700 hover:border-slate-300'
+                      }`}
+                    >
+                      <span className="truncate">{plat.label}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
             <div>
               <label className="block text-xs font-black text-slate-900 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
-                <FileText className="w-3.5 h-3.5 text-rose-600" /> Article Title
+                <FileText className="w-3.5 h-3.5 text-rose-600" />
+                {isEngagement ? 'Campaign Title / Post Caption' : 'Article Title'}
               </label>
               <input
                 type="text"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
-                placeholder="Auto-suggested from link or type title..."
+                placeholder={isEngagement ? 'e.g. SB19 LAWLESS TikTok Dance Challenge' : 'Auto-suggested from link or type title...'}
                 className="w-full px-4 py-2.5 bg-white border border-slate-300 rounded-xl text-slate-900 placeholder-slate-400 focus:outline-none focus:border-rose-600 focus:ring-4 focus:ring-rose-500/10 text-xs font-bold transition-all shadow-xs"
               />
             </div>
@@ -255,7 +323,7 @@ export function SubmitModal({ profile, isOpen, onClose, onSuccess }: SubmitModal
               />
             </div>
 
-            <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-100 mt-6">
+            <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-100 mt-6 sticky bottom-0 bg-white">
               <button
                 type="button"
                 onClick={onClose}
@@ -276,6 +344,7 @@ export function SubmitModal({ profile, isOpen, onClose, onSuccess }: SubmitModal
           </form>
         )}
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

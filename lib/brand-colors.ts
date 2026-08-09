@@ -67,6 +67,20 @@ const BRAND_PRESETS: Record<string, BrandBadgeStyle> = {
   // TikTok (Dark Slate & Neon Cyan)
   tiktok: { bg: '#0f172a', text: '#00f2fe', border: '#334155' },
   
+  // Facebook (Iconic Blue)
+  facebook: { bg: '#1877f2', text: '#ffffff', border: '#166fe5' },
+  fb: { bg: '#1877f2', text: '#ffffff', border: '#166fe5' },
+  
+  // Instagram (Vibrant Pink / Purple)
+  instagram: { bg: '#e1306c', text: '#ffffff', border: '#c13584' },
+  ig: { bg: '#e1306c', text: '#ffffff', border: '#c13584' },
+  
+  // Threads (Dark Slate & White)
+  threads: { bg: '#000000', text: '#ffffff', border: '#333333' },
+
+  // Reddit (Orange & White)
+  reddit: { bg: '#ff4500', text: '#ffffff', border: '#e03d00' },
+  
   // X / Twitter (Black / Twitter Blue)
   x: { bg: '#000000', text: '#ffffff', border: '#333333' },
   twitter: { bg: '#0284c7', text: '#ffffff', border: '#0369a1' },

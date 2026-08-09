@@ -42,6 +42,7 @@ export function CreateProfileModal({ isOpen, onClose, onCreated }: CreateProfile
   const [coverImage, setCoverImage] = useState('');
   const [profileImage, setProfileImage] = useState('');
   const [accentColor, setAccentColor] = useState('#e11d48');
+  const [profileType, setProfileType] = useState<'embed' | 'engagement'>('embed');
   const [featuredVideoUrl, setFeaturedVideoUrl] = useState('');
   const [socialLinks, setSocialLinks] = useState<SocialItem[]>([]);
   const [error, setError] = useState('');
@@ -106,14 +107,13 @@ export function CreateProfileModal({ isOpen, onClose, onCreated }: CreateProfile
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
-
     if (!title.trim() || !slug.trim()) {
-      setError('Please fill in all required fields marked with * (Release Title & URL Slug).');
+      setError('Title and slug are required.');
       return;
     }
 
     setSubmitting(true);
+    setError('');
 
     const getUrl = (plat: string) => {
       const found = socialLinks.find(s => s.platform === plat);
@@ -136,6 +136,7 @@ export function CreateProfileModal({ isOpen, onClose, onCreated }: CreateProfile
       cover_image: coverImage.trim() || null,
       profile_image: profileImage.trim() || null,
       accent_color: accentColor,
+      profile_type: profileType,
       featured_video_url: featuredVideoUrl.trim() || null,
       theme: 'dark',
       website_url: getUrl('website'),
@@ -209,6 +210,51 @@ export function CreateProfileModal({ isOpen, onClose, onCreated }: CreateProfile
               <span>{error}</span>
             </div>
           )}
+
+          <div>
+            <label className="block text-xs font-black text-slate-900 uppercase tracking-wider mb-2">
+              Profile Workspace Type <span className="text-rose-600">*</span>
+            </label>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <button
+                type="button"
+                onClick={() => setProfileType('embed')}
+                className={`p-3.5 rounded-2xl border text-left transition-all cursor-pointer flex flex-col justify-between ${
+                  profileType === 'embed'
+                    ? 'bg-rose-50/80 border-rose-600 text-rose-950 ring-2 ring-rose-600/20 shadow-xs'
+                    : 'bg-white border-slate-200 text-slate-700 hover:border-slate-300'
+                }`}
+              >
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-xs font-extrabold flex items-center gap-1.5 text-rose-700">
+                    <Video className="w-4 h-4 text-rose-600" />
+                    Media & Stream Embeds
+                  </span>
+                  {profileType === 'embed' && <span className="w-2.5 h-2.5 rounded-full bg-rose-600 shadow-xs" />}
+                </div>
+                <p className="text-[11px] text-slate-500 font-medium leading-relaxed">YouTube MV embeds, music streaming links & news articles.</p>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setProfileType('engagement')}
+                className={`p-3.5 rounded-2xl border text-left transition-all cursor-pointer flex flex-col justify-between ${
+                  profileType === 'engagement'
+                    ? 'bg-purple-50/80 border-purple-600 text-purple-950 ring-2 ring-purple-600/20 shadow-xs'
+                    : 'bg-white border-slate-200 text-slate-700 hover:border-slate-300'
+                }`}
+              >
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-xs font-extrabold flex items-center gap-1.5 text-purple-700">
+                    <Share2 className="w-4 h-4 text-purple-600" />
+                    Social Engagement Links
+                  </span>
+                  {profileType === 'engagement' && <span className="w-2.5 h-2.5 rounded-full bg-purple-600 shadow-xs" />}
+                </div>
+                <p className="text-[11px] text-slate-500 font-medium leading-relaxed">TikTok 🎵, FB 📘, X 🐦, IG 📸 boost links compiled by platform.</p>
+              </button>
+            </div>
+          </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
