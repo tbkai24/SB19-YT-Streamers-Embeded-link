@@ -359,6 +359,7 @@ export function SubmitModal({ profile, isOpen, onClose, onSuccess }: SubmitModal
 
             {/* Cloudflare Turnstile Bot Verification */}
             <TurnstileWidget
+              siteKey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY || '0x4AAAAAADvfvehdsxMR16Ud'}
               onVerify={(token) => setTurnstileToken(token)}
               onError={() => setTurnstileToken(null)}
               onExpire={() => setTurnstileToken(null)}

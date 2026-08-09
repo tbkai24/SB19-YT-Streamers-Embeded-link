@@ -30,12 +30,13 @@ declare global {
 }
 
 export function TurnstileWidget({
-  siteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY || '0x4AAAAAADvfvehdsxMR16Ud',
+  siteKey,
   onVerify,
   onError,
   onExpire,
   className = '',
 }: TurnstileWidgetProps) {
+  const activeSiteKey = siteKey || process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY || '0x4AAAAAADvfvehdsxMR16Ud';
   const containerRef = useRef<HTMLDivElement>(null);
   const widgetIdRef = useRef<string | null>(null);
   const [scriptLoaded, setScriptLoaded] = useState(false);
@@ -84,7 +85,7 @@ export function TurnstileWidget({
 
     try {
       widgetIdRef.current = window.turnstile.render(containerRef.current, {
-        sitekey: siteKey,
+        sitekey: activeSiteKey,
         action: 'turnstile-spin-v2',
         callback: (token: string) => {
           if (onVerifyRef.current) onVerifyRef.current(token);
@@ -110,7 +111,7 @@ export function TurnstileWidget({
         widgetIdRef.current = null;
       }
     };
-  }, [scriptLoaded, siteKey]);
+  }, [scriptLoaded, activeSiteKey]);
 
   return (
     <div className={`flex justify-center my-3 min-h-[65px] ${className}`}>
