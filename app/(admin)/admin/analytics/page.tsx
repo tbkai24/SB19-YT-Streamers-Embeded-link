@@ -4,8 +4,8 @@ import React, { useState, useEffect } from 'react';
 import { useAdminWorkspace } from '../layout';
 import { getStoredProfiles, saveProfiles, saveProfileToSupabase, fetchAnalyticsEventsFromSupabase, fetchDailyTrafficStatsFromSupabase } from '@/lib/data-store';
 import { AnalyticsEvent, DailyTrafficStat } from '@/types/database';
-import { getCountryFlagEmoji, COUNTRY_NAMES, normalizeReferrer } from '@/lib/device-detector';
-import { BarChart3, Search, Eye, MousePointerClick, ShieldCheck, Check, Save, Smartphone, Laptop, Tablet, Globe, Calendar, ChevronDown, Users, Share2 } from 'lucide-react';
+import { getCountryFlagEmoji, COUNTRY_NAMES, getCountryName, normalizeReferrer } from '@/lib/device-detector';
+import { BarChart3, Search, Eye, MousePointerClick, ShieldCheck, Check, Save, Smartphone, Laptop, Tablet, Globe, Calendar, ChevronDown, Users, Share2, Maximize2, X, TrendingUp, Sparkles } from 'lucide-react';
 
 const YoutubeIcon = ({ className }: { className?: string }) => (
   <svg className={className} fill="currentColor" viewBox="0 0 24 24">
@@ -61,6 +61,12 @@ export default function AnalyticsAdminPage() {
   const [seoTitle, setSeoTitle] = useState('');
   const [seoDescription, setSeoDescription] = useState('');
   const [savedSuccess, setSavedSuccess] = useState(false);
+
+  // Modal open states for full screen Overview of Countries and Traffic Platforms
+  const [isCountryModalOpen, setIsCountryModalOpen] = useState(false);
+  const [isTrafficModalOpen, setIsTrafficModalOpen] = useState(false);
+  const [modalCountrySearch, setModalCountrySearch] = useState('');
+  const [modalTrafficSearch, setModalTrafficSearch] = useState('');
 
   // Date Range Filter state: 1 Day (Default), 1 Week, 1 Month, All Time, Custom
   const [timeRange, setTimeRange] = useState<'1d' | '1w' | '1m' | 'all' | 'custom'>('1d');
@@ -368,7 +374,13 @@ export default function AnalyticsAdminPage() {
               <Share2 className="w-4 h-4 text-emerald-600" />
               <span>Traffic Platforms</span>
             </h2>
-            <span className="text-[11px] text-slate-500 font-semibold">Social & Web Direct</span>
+            <button
+              onClick={() => setIsTrafficModalOpen(true)}
+              className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-slate-700 transition-colors cursor-pointer"
+              title="Expand Traffic Platforms Overview"
+            >
+              <Maximize2 className="w-4 h-4" />
+            </button>
           </div>
 
           {referrerList.length === 0 ? (
@@ -377,13 +389,22 @@ export default function AnalyticsAdminPage() {
             </p>
           ) : (
             <div className="space-y-2 max-h-36 overflow-y-auto pr-1">
-              {referrerList.map(([platform, count]) => (
+              {referrerList.map(([platform, count], idx) => (
                 <div key={platform} className="flex items-center justify-between p-2 rounded-xl bg-slate-50 border border-slate-200 text-xs">
-                  <div className="flex items-center gap-2 font-bold text-slate-900">
+                  <div className="flex items-center gap-2 font-bold text-slate-900 min-w-0">
+                    {idx === 0 ? (
+                      <span className="px-1.5 py-0.5 text-[10px] font-black rounded-md bg-amber-100 text-amber-700 border border-amber-300 shrink-0">#1</span>
+                    ) : idx === 1 ? (
+                      <span className="px-1.5 py-0.5 text-[10px] font-black rounded-md bg-slate-200 text-slate-700 border border-slate-300 shrink-0">#2</span>
+                    ) : idx === 2 ? (
+                      <span className="px-1.5 py-0.5 text-[10px] font-black rounded-md bg-orange-100 text-orange-800 border border-orange-300 shrink-0">#3</span>
+                    ) : (
+                      <span className="px-1.5 py-0.5 text-[10px] font-bold rounded-md bg-slate-100 text-slate-500 shrink-0">#{idx + 1}</span>
+                    )}
                     {renderTrafficPlatformIcon(platform)}
-                    <span>{platform}</span>
+                    <span className="truncate">{platform}</span>
                   </div>
-                  <span className="px-2 py-0.5 rounded-md bg-white border border-slate-200 font-extrabold text-emerald-600">
+                  <span className="px-2 py-0.5 rounded-md bg-white border border-slate-200 font-extrabold text-emerald-600 shrink-0 ml-1">
                     {count.toLocaleString()} visits
                   </span>
                 </div>
@@ -399,7 +420,13 @@ export default function AnalyticsAdminPage() {
               <Globe className="w-4 h-4 text-blue-600" />
               <span>Visitor Countries</span>
             </h2>
-            <span className="text-[11px] text-slate-500 font-semibold">IP Geolocation</span>
+            <button
+              onClick={() => setIsCountryModalOpen(true)}
+              className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-slate-700 transition-colors cursor-pointer"
+              title="Expand Visitor Countries Overview"
+            >
+              <Maximize2 className="w-4 h-4" />
+            </button>
           </div>
 
           {countryList.length === 0 ? (
@@ -408,9 +435,18 @@ export default function AnalyticsAdminPage() {
             </p>
           ) : (
             <div className="space-y-2 max-h-36 overflow-y-auto pr-1">
-              {countryList.map(([code, count]) => (
+              {countryList.map(([code, count], idx) => (
                 <div key={code} className="flex items-center justify-between p-2 rounded-xl bg-slate-50 border border-slate-200 text-xs">
-                  <div className="flex items-center gap-2 font-bold text-slate-900">
+                  <div className="flex items-center gap-2 font-bold text-slate-900 min-w-0">
+                    {idx === 0 ? (
+                      <span className="px-1.5 py-0.5 text-[10px] font-black rounded-md bg-amber-100 text-amber-700 border border-amber-300 shrink-0">#1</span>
+                    ) : idx === 1 ? (
+                      <span className="px-1.5 py-0.5 text-[10px] font-black rounded-md bg-slate-200 text-slate-700 border border-slate-300 shrink-0">#2</span>
+                    ) : idx === 2 ? (
+                      <span className="px-1.5 py-0.5 text-[10px] font-black rounded-md bg-orange-100 text-orange-800 border border-orange-300 shrink-0">#3</span>
+                    ) : (
+                      <span className="px-1.5 py-0.5 text-[10px] font-bold rounded-md bg-slate-100 text-slate-500 shrink-0">#{idx + 1}</span>
+                    )}
                     <img
                       src={`https://flagcdn.com/w40/${code.toLowerCase()}.png`}
                       alt={code}
@@ -419,9 +455,9 @@ export default function AnalyticsAdminPage() {
                         (e.target as HTMLElement).style.display = 'none';
                       }}
                     />
-                    <span>{COUNTRY_NAMES[code] || code}</span>
+                    <span className="truncate">{getCountryName(code)}</span>
                   </div>
-                  <span className="px-2 py-0.5 rounded-md bg-white border border-slate-200 font-extrabold text-rose-600">
+                  <span className="px-2 py-0.5 rounded-md bg-white border border-slate-200 font-extrabold text-rose-600 shrink-0 ml-1">
                     {count.toLocaleString()} visits
                   </span>
                 </div>
@@ -506,6 +542,111 @@ export default function AnalyticsAdminPage() {
           </button>
         </div>
       </form>
+
+      {/* OVERVIEW MODAL: ALL VISITOR COUNTRIES (DOUBLE COLUMN GRID) */}
+      {isCountryModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-start justify-center pt-10 sm:pt-16 p-4 bg-slate-900/50 backdrop-blur-xs animate-in fade-in duration-150" onClick={() => setIsCountryModalOpen(false)}>
+          <div className="w-full max-w-2xl p-6 rounded-2xl glass-panel border border-slate-200 bg-white space-y-4 shadow-2xl animate-in zoom-in-95 duration-150" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between border-b border-slate-200 pb-3">
+              <h2 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                <Globe className="w-4 h-4 text-blue-600" />
+                <span>Visitor Countries ({countryList.length})</span>
+              </h2>
+              <button
+                onClick={() => setIsCountryModalOpen(false)}
+                className="p-1 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-slate-700 transition-colors cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {countryList.length === 0 ? (
+              <p className="text-xs text-slate-500 font-medium py-3 text-center">
+                No country data logged yet.
+              </p>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 max-h-[60vh] overflow-y-auto pr-1">
+                {countryList.map(([code, count], idx) => (
+                  <div key={code} className="flex items-center justify-between p-1.5 px-2.5 rounded-lg bg-slate-50 border border-slate-200 text-[11px]">
+                    <div className="flex items-center gap-1.5 font-bold text-slate-900 truncate">
+                      {idx === 0 ? (
+                        <span className="px-1 py-0.2 text-[9px] font-black rounded bg-amber-100 text-amber-700 border border-amber-300 shrink-0">#1</span>
+                      ) : idx === 1 ? (
+                        <span className="px-1 py-0.2 text-[9px] font-black rounded bg-slate-200 text-slate-700 border border-slate-300 shrink-0">#2</span>
+                      ) : idx === 2 ? (
+                        <span className="px-1 py-0.2 text-[9px] font-black rounded bg-orange-100 text-orange-800 border border-orange-300 shrink-0">#3</span>
+                      ) : (
+                        <span className="px-1 py-0.2 text-[9px] font-bold rounded bg-slate-100 text-slate-500 shrink-0">#{idx + 1}</span>
+                      )}
+                      <img
+                        src={`https://flagcdn.com/w40/${code.toLowerCase()}.png`}
+                        alt={code}
+                        className="w-4 h-3 object-cover rounded-xs border border-slate-200 shadow-2xs shrink-0"
+                        onError={(e) => {
+                          (e.target as HTMLElement).style.display = 'none';
+                        }}
+                      />
+                      <span className="truncate">{getCountryName(code)}</span>
+                    </div>
+                    <span className="px-1.5 py-0.5 rounded bg-white border border-slate-200 font-extrabold text-rose-600 shrink-0 ml-1 text-[10px]">
+                      {count.toLocaleString()} visits
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* OVERVIEW MODAL: ALL TRAFFIC PLATFORMS (DOUBLE COLUMN GRID) */}
+      {isTrafficModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-start justify-center pt-10 sm:pt-16 p-4 bg-slate-900/50 backdrop-blur-xs animate-in fade-in duration-150" onClick={() => setIsTrafficModalOpen(false)}>
+          <div className="w-full max-w-2xl p-6 rounded-2xl glass-panel border border-slate-200 bg-white space-y-4 shadow-2xl animate-in zoom-in-95 duration-150" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between border-b border-slate-200 pb-3">
+              <h2 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                <Share2 className="w-4 h-4 text-emerald-600" />
+                <span>Traffic Platforms ({referrerList.length})</span>
+              </h2>
+              <button
+                onClick={() => setIsTrafficModalOpen(false)}
+                className="p-1 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-slate-700 transition-colors cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {referrerList.length === 0 ? (
+              <p className="text-xs text-slate-500 font-medium py-3 text-center">
+                Direct Link visits.
+              </p>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 max-h-[60vh] overflow-y-auto pr-1">
+                {referrerList.map(([platform, count], idx) => (
+                  <div key={platform} className="flex items-center justify-between p-1.5 px-2.5 rounded-lg bg-slate-50 border border-slate-200 text-[11px]">
+                    <div className="flex items-center gap-1.5 font-bold text-slate-900 truncate">
+                      {idx === 0 ? (
+                        <span className="px-1 py-0.2 text-[9px] font-black rounded bg-amber-100 text-amber-700 border border-amber-300 shrink-0">#1</span>
+                      ) : idx === 1 ? (
+                        <span className="px-1 py-0.2 text-[9px] font-black rounded bg-slate-200 text-slate-700 border border-slate-300 shrink-0">#2</span>
+                      ) : idx === 2 ? (
+                        <span className="px-1 py-0.2 text-[9px] font-black rounded bg-orange-100 text-orange-800 border border-orange-300 shrink-0">#3</span>
+                      ) : (
+                        <span className="px-1 py-0.2 text-[9px] font-bold rounded bg-slate-100 text-slate-500 shrink-0">#{idx + 1}</span>
+                      )}
+                      {renderTrafficPlatformIcon(platform)}
+                      <span className="truncate">{platform}</span>
+                    </div>
+                    <span className="px-1.5 py-0.5 rounded bg-white border border-slate-200 font-extrabold text-emerald-600 shrink-0 ml-1 text-[10px]">
+                      {count.toLocaleString()} visits
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

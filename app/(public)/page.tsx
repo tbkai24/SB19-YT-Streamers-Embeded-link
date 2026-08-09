@@ -6,13 +6,16 @@ import { Profile, Article } from '@/types/database';
 import { getStoredProfiles, getStoredArticles, fetchProfilesFromSupabase, fetchArticlesFromSupabase } from '@/lib/data-store';
 import { PublicFooter } from '@/components/public/footer';
 import { BrandLogo } from '@/components/public/logo';
-import { Search, Sparkles, ArrowRight, Music } from 'lucide-react';
+import { CountryBreakdownModal } from '@/components/public/country-modal';
+import { getCountryFlagEmoji } from '@/lib/device-detector';
+import { Search, Sparkles, ArrowRight, Music, Globe } from 'lucide-react';
 
 export default function PublicHomePage() {
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [articles, setArticles] = useState<Article[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [isLoading, setIsLoading] = useState(true);
+  const [activeCountryProfile, setActiveCountryProfile] = useState<Profile | null>(null);
 
   const loadData = async () => {
     // 1. Initial local load
@@ -61,7 +64,7 @@ export default function PublicHomePage() {
       <div className="fixed top-0 left-1/2 -translate-x-1/2 w-[700px] h-[350px] bg-rose-500/10 blur-[140px] pointer-events-none rounded-full animate-pulse-red" />
       <div className="fixed bottom-0 right-0 w-[450px] h-[350px] bg-amber-400/10 blur-[130px] pointer-events-none rounded-full" />
 
-      {/* Top Header / Brand Bar (No Admin Link - Completely Hidden from Public) */}
+      {/* Top Header / Brand Bar */}
       <div className="w-full max-w-xl flex items-center justify-center mb-8 z-10">
         <BrandLogo size="md" showText={true} />
       </div>
@@ -118,51 +121,78 @@ export default function PublicHomePage() {
           ) : (
             filteredProfiles.map((profile) => {
               const count = getArticleCount(profile.id);
+              const topCountries = Object.keys(profile.country_breakdown || {}).slice(0, 3);
               return (
-                <Link
+                <div
                   key={profile.id}
-                  href={`/profile/${profile.slug}`}
                   className="group relative block w-full rounded-2xl overflow-hidden glass-card p-4 border border-slate-200/90 hover:border-rose-400 shadow-sm hover:shadow-md transition-all"
                 >
-                  <div className="flex items-center gap-4">
-                    {/* Image / Avatar */}
-                    <div className="relative w-14 h-14 rounded-xl overflow-hidden bg-slate-100 shrink-0 border border-slate-200">
-                      {profile.cover_image || profile.profile_image ? (
-                        <img
-                          src={profile.profile_image || profile.cover_image || ''}
-                          alt={profile.title}
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                        />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center bg-slate-100 text-slate-400">
-                          <Music className="w-6 h-6" />
+                  <Link href={`/profile/${profile.slug}`} className="block">
+                    <div className="flex items-center gap-4">
+                      {/* Image / Avatar */}
+                      <div className="relative w-14 h-14 rounded-xl overflow-hidden bg-slate-100 shrink-0 border border-slate-200">
+                        {profile.cover_image || profile.profile_image ? (
+                          <img
+                            src={profile.profile_image || profile.cover_image || ''}
+                            alt={profile.title}
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center bg-slate-100 text-slate-400">
+                            <Music className="w-6 h-6" />
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Meta info */}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <h2 className="text-lg font-bold text-slate-900 group-hover:text-rose-600 transition-colors">
+                            {profile.title}
+                          </h2>
+                          <span className="px-2 py-0.5 rounded-md bg-rose-50 text-[11px] font-bold text-rose-700 border border-rose-200">
+                            {count} {count === 1 ? 'article' : 'articles'}
+                          </span>
                         </div>
+                        <p className="text-xs text-slate-600 line-clamp-1 mt-0.5 font-medium">
+                          {profile.description}
+                        </p>
+                      </div>
+
+                      {/* Red Arrow CTA */}
+                      <div className="shrink-0">
+                        <div className="p-2.5 rounded-full bg-gradient-to-tr from-rose-600 to-red-500 text-white shadow-sm transition-all group-hover:translate-x-1">
+                          <ArrowRight className="w-4 h-4" />
+                        </div>
+                      </div>
+                    </div>
+                  </Link>
+
+                  {/* Floating Country Streamers Badge Trigger */}
+                  <div className="mt-3 pt-2.5 border-t border-slate-100 flex items-center justify-between">
+                    <button
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        setActiveCountryProfile(profile);
+                      }}
+                      className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-slate-100 hover:bg-rose-50 hover:border-rose-200 text-slate-700 hover:text-rose-700 text-[11px] font-bold transition-all border border-slate-200/80 shadow-2xs active:scale-95"
+                    >
+                      <Globe className="w-3.5 h-3.5 text-rose-500" />
+                      <span>Streamers:</span>
+                      {topCountries.length > 0 ? (
+                        <div className="flex items-center gap-0.5">
+                          {topCountries.map(c => (
+                            <span key={c} className="text-sm leading-none">{getCountryFlagEmoji(c)}</span>
+                          ))}
+                          <span className="text-[10px] text-slate-500 ml-0.5">View breakdown →</span>
+                        </div>
+                      ) : (
+                        <span className="text-slate-500 font-medium">Global →</span>
                       )}
-                    </div>
-
-                    {/* Meta info */}
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <h2 className="text-lg font-bold text-slate-900 group-hover:text-rose-600 transition-colors">
-                          {profile.title}
-                        </h2>
-                        <span className="px-2 py-0.5 rounded-md bg-rose-50 text-[11px] font-bold text-rose-700 border border-rose-200">
-                          {count} {count === 1 ? 'article' : 'articles'}
-                        </span>
-                      </div>
-                      <p className="text-xs text-slate-600 line-clamp-1 mt-0.5 font-medium">
-                        {profile.description}
-                      </p>
-                    </div>
-
-                    {/* Red Arrow CTA */}
-                    <div className="shrink-0">
-                      <div className="p-2.5 rounded-full bg-gradient-to-tr from-rose-600 to-red-500 text-white shadow-sm transition-all group-hover:translate-x-1">
-                        <ArrowRight className="w-4 h-4" />
-                      </div>
-                    </div>
+                    </button>
                   </div>
-                </Link>
+                </div>
               );
             })
           )}
@@ -170,6 +200,15 @@ export default function PublicHomePage() {
 
         <PublicFooter />
       </main>
+
+      {/* Floating Country Breakdown Modal */}
+      <CountryBreakdownModal
+        isOpen={!!activeCountryProfile}
+        onClose={() => setActiveCountryProfile(null)}
+        countryBreakdown={activeCountryProfile?.country_breakdown}
+        profileTitle={activeCountryProfile?.title}
+      />
     </div>
   );
 }
+

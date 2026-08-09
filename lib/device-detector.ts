@@ -87,7 +87,50 @@ export const COUNTRY_NAMES: Record<string, string> = {
   ES: 'Spain',
   DE: 'Germany',
   FR: 'France',
+  HK: 'Hong Kong',
+  TW: 'Taiwan',
+  NZ: 'New Zealand',
+  BR: 'Brazil',
+  MX: 'Mexico',
+  IN: 'India',
+  VN: 'Vietnam',
+  MO: 'Macau',
+  AR: 'Argentina',
+  CL: 'Chile',
+  CO: 'Colombia',
+  PE: 'Peru',
+  NL: 'Netherlands',
+  SE: 'Sweden',
+  NO: 'Norway',
+  FI: 'Finland',
+  DK: 'Denmark',
+  PL: 'Poland',
+  IE: 'Ireland',
+  CH: 'Switzerland',
+  AT: 'Austria',
+  BE: 'Belgium',
+  PT: 'Portugal',
+  GR: 'Greece',
+  TR: 'Turkey',
+  EG: 'Egypt',
+  ZA: 'South Africa',
+  BH: 'Bahrain',
+  OM: 'Oman',
 };
+
+export function getCountryName(countryCode: string): string {
+  if (!countryCode) return 'Unknown';
+  const code = countryCode.toUpperCase().trim();
+  if (COUNTRY_NAMES[code]) return COUNTRY_NAMES[code];
+  try {
+    const regionNames = new Intl.DisplayNames(['en'], { type: 'region' });
+    const name = regionNames.of(code);
+    if (name && name !== code) return name;
+  } catch {
+    // Fallback
+  }
+  return code;
+}
 
 export function normalizeReferrer(referrerUrl?: string | null): string {
   if (!referrerUrl || typeof referrerUrl !== 'string' || !referrerUrl.trim()) {

@@ -9,8 +9,10 @@ import { extractYouTubeId, decodeHtmlEntities, isEligibleForArticleOfTheDay, tra
 import { SocialLinks } from '@/components/public/social-links';
 import { ArticleCard } from '@/components/public/article-card';
 import { SubmitModal } from '@/components/public/submit-modal';
+import { CountryBreakdownModal } from '@/components/public/country-modal';
 import { PublicFooter } from '@/components/public/footer';
 import { BrandLogo } from '@/components/public/logo';
+import { getCountryFlagEmoji } from '@/lib/device-detector';
 import { ArrowLeft, PlusCircle, Radio, Video, Sparkles, ExternalLink, Globe } from 'lucide-react';
 
 interface ProfilePageProps {
@@ -115,6 +117,7 @@ export default function PublicProfilePage({ params }: ProfilePageProps) {
   const [articles, setArticles] = useState<Article[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitOpen, setIsSubmitOpen] = useState(false);
+  const [isCountryModalOpen, setIsCountryModalOpen] = useState(false);
 
   const loadData = async () => {
     const slug = resolvedParams.slug.toLowerCase();
@@ -276,6 +279,23 @@ export default function PublicProfilePage({ params }: ProfilePageProps) {
 
           {/* Social Icons */}
           <SocialLinks profile={profile} />
+
+          {/* Floating Country Streamers Badge */}
+          <div className="mt-3">
+            <button
+              onClick={() => setIsCountryModalOpen(true)}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-2xl bg-white hover:bg-rose-50 hover:border-rose-300 text-slate-800 text-xs font-extrabold transition-all border border-slate-200 shadow-sm active:scale-95"
+            >
+              <Globe className="w-4 h-4 text-rose-500 animate-pulse" />
+              <span>Global Streamers:</span>
+              <div className="flex items-center gap-0.5">
+                {Object.keys(profile.country_breakdown || {}).slice(0, 4).map(c => (
+                  <span key={c} className="text-base leading-none">{getCountryFlagEmoji(c)}</span>
+                ))}
+                <span className="text-[11px] text-slate-500 font-bold ml-1">View Breakdown →</span>
+              </div>
+            </button>
+          </div>
         </div>
 
         {/* Featured Official MV Video Player */}
@@ -348,6 +368,14 @@ export default function PublicProfilePage({ params }: ProfilePageProps) {
         onSuccess={() => {
           loadData();
         }}
+      />
+
+      {/* Floating Country Breakdown Modal */}
+      <CountryBreakdownModal
+        isOpen={isCountryModalOpen}
+        onClose={() => setIsCountryModalOpen(false)}
+        countryBreakdown={profile.country_breakdown}
+        profileTitle={profile.title}
       />
     </div>
   );
