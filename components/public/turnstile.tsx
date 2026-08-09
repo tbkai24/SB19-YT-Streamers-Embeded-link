@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useRef, useState } from 'react';
+import Script from 'next/script';
 
 interface TurnstileWidgetProps {
   siteKey?: string;
@@ -41,7 +42,6 @@ export function TurnstileWidget({
   const widgetIdRef = useRef<string | null>(null);
   const [scriptLoaded, setScriptLoaded] = useState(false);
 
-  // Store latest callbacks in refs so parent re-renders don't re-mount Turnstile
   const onVerifyRef = useRef(onVerify);
   const onErrorRef = useRef(onError);
   const onExpireRef = useRef(onExpire);
@@ -53,28 +53,8 @@ export function TurnstileWidget({
   });
 
   useEffect(() => {
-    if (window.turnstile) {
+    if (typeof window !== 'undefined' && window.turnstile) {
       setScriptLoaded(true);
-      return;
-    }
-
-    const existingScript = document.getElementById('cf-turnstile-script');
-    if (!existingScript) {
-      const script = document.createElement('script');
-      script.id = 'cf-turnstile-script';
-      script.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit';
-      script.async = true;
-      script.defer = true;
-      script.onload = () => setScriptLoaded(true);
-      document.head.appendChild(script);
-    } else {
-      const checkInterval = setInterval(() => {
-        if (window.turnstile) {
-          setScriptLoaded(true);
-          clearInterval(checkInterval);
-        }
-      }, 100);
-      return () => clearInterval(checkInterval);
     }
   }, []);
 
@@ -114,8 +94,20 @@ export function TurnstileWidget({
   }, [scriptLoaded, activeSiteKey]);
 
   return (
-    <div className={`flex justify-center my-3 min-h-[65px] ${className}`}>
-      <div ref={containerRef} />
-    </div>
+    <>
+      <Script
+        id="cf-turnstile-script"
+        src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit"
+        strategy="afterInteractive"
+        onReady={() => {
+          if (window.turnstile) {
+            setScriptLoaded(true);
+          }
+        }}
+      />
+      <div className={`flex justify-center my-3 min-h-[65px] ${className}`}>
+        <div ref={containerRef} />
+      </div>
+    </>
   );
 }
