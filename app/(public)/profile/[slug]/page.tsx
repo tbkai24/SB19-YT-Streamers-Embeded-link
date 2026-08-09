@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, use } from 'react';
+import React, { useState, useEffect, useRef, use } from 'react';
 import Link from 'next/link';
 import { Profile, Article } from '@/types/database';
 import { getStoredProfiles, getStoredArticles, fetchProfilesFromSupabase, fetchArticlesFromSupabase, recordProfileView } from '@/lib/data-store';
@@ -118,6 +118,7 @@ export default function PublicProfilePage({ params }: ProfilePageProps) {
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitOpen, setIsSubmitOpen] = useState(false);
   const [isCountryModalOpen, setIsCountryModalOpen] = useState(false);
+  const viewRecordedRef = useRef<string | null>(null);
 
   const loadData = async () => {
     const slug = resolvedParams.slug.toLowerCase();
@@ -127,7 +128,10 @@ export default function PublicProfilePage({ params }: ProfilePageProps) {
     const localMatch = localProfiles.find(p => p.slug.toLowerCase() === slug);
     if (localMatch) {
       setProfile(localMatch);
-      recordProfileView(localMatch.id);
+      if (viewRecordedRef.current !== localMatch.id) {
+        viewRecordedRef.current = localMatch.id;
+        recordProfileView(localMatch.id);
+      }
       const localArticles = getStoredArticles()
         .filter(a => a.profile_id === localMatch.id && a.status === 'published')
         .sort((a, b) => a.display_order - b.display_order);
@@ -147,7 +151,10 @@ export default function PublicProfilePage({ params }: ProfilePageProps) {
 
       if (supabaseMatch) {
         setProfile(supabaseMatch);
-        recordProfileView(supabaseMatch.id);
+        if (viewRecordedRef.current !== supabaseMatch.id) {
+          viewRecordedRef.current = supabaseMatch.id;
+          recordProfileView(supabaseMatch.id);
+        }
         const fetchedArticles = await fetchArticlesFromSupabase();
         const profileArts = fetchedArticles
           .filter(a => a.profile_id === supabaseMatch.id && a.status === 'published')

@@ -9,37 +9,37 @@ import { BarChart3, Search, Eye, MousePointerClick, ShieldCheck, Check, Save, Sm
 
 const YoutubeIcon = ({ className }: { className?: string }) => (
   <svg className={className} fill="currentColor" viewBox="0 0 24 24">
-    <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
+    <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z" />
   </svg>
 );
 
 const FacebookIcon = ({ className }: { className?: string }) => (
   <svg className={className} fill="currentColor" viewBox="0 0 24 24">
-    <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
+    <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
   </svg>
 );
 
 const InstagramIcon = ({ className }: { className?: string }) => (
   <svg className={className} fill="currentColor" viewBox="0 0 24 24">
-    <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/>
+    <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z" />
   </svg>
 );
 
 const XTwitterIcon = ({ className }: { className?: string }) => (
   <svg className={className} fill="currentColor" viewBox="0 0 24 24">
-    <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+    <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
   </svg>
 );
 
 const TikTokIcon = ({ className }: { className?: string }) => (
   <svg className={className} fill="currentColor" viewBox="0 0 24 24">
-    <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64c.29 0 .58.04.86.12V9.31a6.34 6.34 0 0 0-1-.08 6.34 6.34 0 1 0 6.34 6.34V9.07a8.16 8.16 0 0 0 4.91 1.63V7.25a4.86 4.86 0 0 1-1-.56z"/>
+    <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64c.29 0 .58.04.86.12V9.31a6.34 6.34 0 0 0-1-.08 6.34 6.34 0 1 0 6.34 6.34V9.07a8.16 8.16 0 0 0 4.91 1.63V7.25a4.86 4.86 0 0 1-1-.56z" />
   </svg>
 );
 
 const ThreadsIcon = ({ className }: { className?: string }) => (
   <svg className={className} fill="currentColor" viewBox="0 0 24 24">
-    <path d="M12.186 24c-6.19 0-10.743-4.554-10.743-11.455C1.443 5.455 6.343.5 12.5.5c6.248 0 10.957 4.707 10.957 11.758 0 7.42-5.105 11.742-11.127 11.742-2.828 0-5.326-1.077-6.907-2.981l1.52-1.55c1.233 1.492 3.256 2.33 5.387 2.33 4.542 0 8.358-3.08 8.358-9.541 0-5.46-3.488-9.056-8.188-9.056-4.786 0-8.324 3.73-8.324 9.5 0 5.46 3.4 8.784 8.1 8.784 1.83 0 3.32-.472 4.417-1.4.953-.807 1.494-1.922 1.494-3.076 0-1.848-1.34-2.846-3.69-2.846h-.37c-1.42 0-2.316.71-2.316 1.8 0 .977.72 1.636 1.88 1.636.85 0 1.54-.31 2.05-.9l.06-.07.03.07c.07.19.1.41.1.63 0 .76-.38 1.48-1.04 1.98-.82.63-2.02.93-3.45.93-3.32 0-5.75-2.22-5.75-5.91 0-3.9 2.5-6.52 6.07-6.52 3.65 0 5.94 2.45 5.94 6.27 0 1.95-.73 3.65-2.06 4.79-1.45 1.25-3.47 1.88-5.83 1.88z"/>
+    <path d="M12.186 24c-6.19 0-10.743-4.554-10.743-11.455C1.443 5.455 6.343.5 12.5.5c6.248 0 10.957 4.707 10.957 11.758 0 7.42-5.105 11.742-11.127 11.742-2.828 0-5.326-1.077-6.907-2.981l1.52-1.55c1.233 1.492 3.256 2.33 5.387 2.33 4.542 0 8.358-3.08 8.358-9.541 0-5.46-3.488-9.056-8.188-9.056-4.786 0-8.324 3.73-8.324 9.5 0 5.46 3.4 8.784 8.1 8.784 1.83 0 3.32-.472 4.417-1.4.953-.807 1.494-1.922 1.494-3.076 0-1.848-1.34-2.846-3.69-2.846h-.37c-1.42 0-2.316.71-2.316 1.8 0 .977.72 1.636 1.88 1.636.85 0 1.54-.31 2.05-.9l.06-.07.03.07c.07.19.1.41.1.63 0 .76-.38 1.48-1.04 1.98-.82.63-2.02.93-3.45.93-3.32 0-5.75-2.22-5.75-5.91 0-3.9 2.5-6.52 6.07-6.52 3.65 0 5.94 2.45 5.94 6.27 0 1.95-.73 3.65-2.06 4.79-1.45 1.25-3.47 1.88-5.83 1.88z" />
   </svg>
 );
 
@@ -138,83 +138,147 @@ export default function AnalyticsAdminPage() {
   });
 
   const nonLocalhostEvents = filteredEvents.filter(e => normalizeReferrer(e.referrer) !== 'Localhost');
-  const hasEventData = nonLocalhostEvents.length > 0;
-  const hasDailyData = dailyStats.length > 0;
 
-  let displayViews = 0;
-  let uniqueVisitorsCount = 0;
-  let displayClicks = 0;
-  let devices: Record<string, number> = { mobile: 0, desktop: 0, tablet: 0 };
-  let countriesMap: Record<string, number> = {};
-  let referrersMap: Record<string, number> = {};
+  // Group raw non-localhost events by date string YYYY-MM-DD
+  const eventsByDate: Record<string, AnalyticsEvent[]> = {};
+  nonLocalhostEvents.forEach(ev => {
+    const dStr = new Date(ev.created_at).toISOString().split('T')[0];
+    if (!eventsByDate[dStr]) eventsByDate[dStr] = [];
+    eventsByDate[dStr].push(ev);
+  });
 
-  if (hasEventData) {
-    const viewEvents = nonLocalhostEvents.filter(e => e.event_type === 'profile_view');
-    const clickEvents = nonLocalhostEvents.filter(e => e.event_type === 'article_click');
+  // Map of daily traffic stats by date YYYY-MM-DD
+  const dailyStatsByDate: Record<string, DailyTrafficStat> = {};
+  filteredDailyStats.forEach(ds => {
+    dailyStatsByDate[ds.date] = ds;
+  });
 
-    displayViews = viewEvents.length;
-    displayClicks = clickEvents.length;
-    uniqueVisitorsCount = new Set(viewEvents.map(e => e.visitor_hash || (e.country ? `${e.country}_${e.device || 'mobile'}_${new Date(e.created_at).toISOString().split('T')[0]}` : 'anon'))).size;
+  // Set of all unique dates in the filtered time range
+  const allDates = new Set([
+    ...Object.keys(eventsByDate),
+    ...Object.keys(dailyStatsByDate)
+  ]);
 
-    devices = viewEvents.reduce((acc, ev) => {
+  let totalViewsSum = 0;
+  let totalClicksSum = 0;
+  const mergedDevices: Record<string, number> = { mobile: 0, desktop: 0, tablet: 0 };
+  const mergedCountries: Record<string, number> = {};
+  const mergedReferrers: Record<string, number> = {};
+  const uniqueVisitorSet = new Set<string>();
+
+  allDates.forEach(dStr => {
+    const dayEvents = eventsByDate[dStr] || [];
+    const dayStat = dailyStatsByDate[dStr];
+
+    const dayViewEvents = dayEvents.filter(e => e.event_type === 'profile_view');
+    const dayClickEvents = dayEvents.filter(e => e.event_type === 'article_click');
+
+    // Calculate views for this day (max of raw events vs aggregated stat)
+    let dayViewsFromStat = 0;
+    if (dayStat) {
+      const rd = (dayStat as any).referrer_breakdown || {};
+      Object.entries(rd).forEach(([p, cnt]) => {
+        if (normalizeReferrer(p) !== 'Localhost') {
+          dayViewsFromStat += (cnt as number);
+        }
+      });
+    }
+
+    const dayViews = Math.max(dayViewEvents.length, dayViewsFromStat);
+    totalViewsSum += dayViews;
+
+    // Calculate clicks for this day
+    const dayClicksFromStat = dayStat ? (dayStat.clicks_count || 0) : 0;
+    const dayClicks = Math.max(dayClickEvents.length, dayClicksFromStat);
+    totalClicksSum += dayClicks;
+
+    // Option B: Strict Deduplicated Unique Visitors across the date range
+    dayViewEvents.forEach(e => {
+      uniqueVisitorSet.add(e.visitor_hash || `${e.country || 'PH'}_${e.device || 'mobile'}`);
+    });
+    if (dayViewEvents.length === 0 && dayViewsFromStat > 0) {
+      // Aggregate distinct visitor estimate from country/device breakdown
+      const cd = dayStat?.country_breakdown || {};
+      Object.keys(cd).forEach(c => {
+        uniqueVisitorSet.add(`geo_${c}`);
+      });
+    }
+
+    // Devices for this day
+    const dayStatDevices = dayStat?.device_breakdown || {};
+    const dayEventDevices = dayViewEvents.reduce((acc, ev) => {
       const d = ev.device || 'mobile';
       acc[d] = (acc[d] || 0) + 1;
       return acc;
     }, { mobile: 0, desktop: 0, tablet: 0 } as Record<string, number>);
 
-    countriesMap = viewEvents.reduce((acc, ev) => {
+    mergedDevices.mobile += Math.max(dayEventDevices.mobile || 0, dayStatDevices.mobile || 0);
+    mergedDevices.desktop += Math.max(dayEventDevices.desktop || 0, dayStatDevices.desktop || 0);
+    mergedDevices.tablet += Math.max(dayEventDevices.tablet || 0, dayStatDevices.tablet || 0);
+
+    // Countries for this day
+    const dayStatCountries = dayStat?.country_breakdown || {};
+    const dayEventCountries = dayViewEvents.reduce((acc, ev) => {
       if (ev.country) acc[ev.country] = (acc[ev.country] || 0) + 1;
       return acc;
     }, {} as Record<string, number>);
 
-    referrersMap = viewEvents.reduce((acc, ev) => {
+    const dayCountryKeys = new Set([...Object.keys(dayStatCountries), ...Object.keys(dayEventCountries)]);
+    dayCountryKeys.forEach(c => {
+      mergedCountries[c] = (mergedCountries[c] || 0) + Math.max(dayEventCountries[c] || 0, dayStatCountries[c] || 0);
+    });
+
+    // Referrers for this day
+    const dayStatReferrers: Record<string, number> = {};
+    if (dayStat) {
+      const rd = (dayStat as any).referrer_breakdown || {};
+      Object.entries(rd).forEach(([p, cnt]) => {
+        const platform = normalizeReferrer(p);
+        if (platform !== 'Localhost') {
+          dayStatReferrers[platform] = (dayStatReferrers[platform] || 0) + (cnt as number);
+        }
+      });
+    }
+
+    const dayEventReferrers = dayViewEvents.reduce((acc, ev) => {
       const platform = normalizeReferrer(ev.referrer);
       if (platform !== 'Localhost') {
         acc[platform] = (acc[platform] || 0) + 1;
       }
       return acc;
     }, {} as Record<string, number>);
-  } else if (hasDailyData) {
-    let nonLocalhostViewsSum = 0;
 
-    referrersMap = filteredDailyStats.reduce((acc, s) => {
-      const rd = (s as any).referrer_breakdown || {};
-      Object.entries(rd).forEach(([p, cnt]) => {
-        const platform = normalizeReferrer(p);
-        const count = cnt as number;
-        if (platform !== 'Localhost') {
-          acc[platform] = (acc[platform] || 0) + count;
-          nonLocalhostViewsSum += count;
-        }
-      });
-      return acc;
-    }, {} as Record<string, number>);
+    const dayRefKeys = new Set([...Object.keys(dayStatReferrers), ...Object.keys(dayEventReferrers)]);
+    dayRefKeys.forEach(r => {
+      mergedReferrers[r] = (mergedReferrers[r] || 0) + Math.max(dayEventReferrers[r] || 0, dayStatReferrers[r] || 0);
+    });
+  });
 
-    displayViews = nonLocalhostViewsSum;
-    displayClicks = filteredDailyStats.reduce((sum, s) => sum + (s.clicks_count || 0), 0);
-    uniqueVisitorsCount = displayViews;
+  const clickEventsInRange = filteredEvents.filter(e => e.event_type === 'article_click');
 
-    devices = filteredDailyStats.reduce((acc, s) => {
-      const bd = s.device_breakdown || {};
-      acc.mobile = (acc.mobile || 0) + (bd.mobile || 0);
-      acc.desktop = (acc.desktop || 0) + (bd.desktop || 0);
-      acc.tablet = (acc.tablet || 0) + (bd.tablet || 0);
-      return acc;
-    }, { mobile: 0, desktop: 0, tablet: 0 } as Record<string, number>);
+  let displayViews = totalViewsSum;
+  let displayClicks = timeRange === 'all'
+    ? Math.max(totalClicks, clickEventsInRange.length)
+    : (clickEventsInRange.length > 0 ? clickEventsInRange.length : Math.min(totalClicksSum, totalClicks));
+  let uniqueVisitorsCount = uniqueVisitorSet.size;
+  let devices = mergedDevices;
+  let countriesMap = mergedCountries;
+  let referrersMap = mergedReferrers;
 
-    countriesMap = filteredDailyStats.reduce((acc, s) => {
-      const cd = s.country_breakdown || {};
-      Object.entries(cd).forEach(([c, cnt]) => {
-        acc[c] = (acc[c] || 0) + (cnt as number);
-      });
-      return acc;
-    }, {} as Record<string, number>);
-  } else {
-    displayViews = 0;
-    displayClicks = 0;
-    uniqueVisitorsCount = 0;
-    devices = { mobile: 0, desktop: 0, tablet: 0 };
-    countriesMap = {};
+  // When All Time is selected, aggregate lifetime counters from activeProfile and articles
+  if (timeRange === 'all') {
+    displayViews = Math.max(totalViews, displayViews);
+    displayClicks = Math.max(totalClicks, displayClicks);
+
+    const profCountries = activeProfile.country_breakdown || {};
+    Object.entries(profCountries).forEach(([c, cnt]) => {
+      countriesMap[c] = Math.max(countriesMap[c] || 0, cnt as number);
+    });
+
+    const profDevices = activeProfile.device_breakdown || {};
+    devices.mobile = Math.max(devices.mobile || 0, profDevices.mobile || 0);
+    devices.desktop = Math.max(devices.desktop || 0, profDevices.desktop || 0);
+    devices.tablet = Math.max(devices.tablet || 0, profDevices.tablet || 0);
   }
 
   const mobileCount = devices.mobile || 0;
@@ -305,7 +369,9 @@ export default function AnalyticsAdminPage() {
             <Eye className="w-4 h-4 text-rose-600" />
           </div>
           <div className="text-2xl font-extrabold text-slate-900 mt-2">{displayViews.toLocaleString()}</div>
-          <div className="text-[11px] text-slate-500 mt-1 font-medium">All visits & page refreshes</div>
+          <div className="text-[11px] text-slate-500 mt-1 font-medium">
+            {timeRange === '1d' ? 'Visits in the last 24 hours' : timeRange === '1w' ? 'Visits in the last 7 days' : timeRange === '1m' ? 'Visits in the last 30 days' : timeRange === 'all' ? 'Lifetime total views (All Time)' : 'Visits in custom date range'}
+          </div>
         </div>
 
         <div className="p-5 rounded-2xl glass-card border border-slate-200 bg-white shadow-xs">
@@ -314,7 +380,9 @@ export default function AnalyticsAdminPage() {
             <Users className="w-4 h-4 text-blue-600" />
           </div>
           <div className="text-2xl font-extrabold text-slate-900 mt-2">{uniqueVisitorsCount.toLocaleString()}</div>
-          <div className="text-[11px] text-slate-500 mt-1 font-medium">Unique individual fans per date range</div>
+          <div className="text-[11px] text-slate-500 mt-1 font-medium">
+            {timeRange === 'all' ? 'Estimated unique fans (All Time)' : `Unique individual fans (${timeRange === '1d' ? '24h' : timeRange === '1w' ? '7d' : timeRange === '1m' ? '30d' : 'Range'})`}
+          </div>
         </div>
 
         <div className="p-5 rounded-2xl glass-card border border-slate-200 bg-white shadow-xs">
@@ -323,7 +391,9 @@ export default function AnalyticsAdminPage() {
             <MousePointerClick className="w-4 h-4 text-emerald-600" />
           </div>
           <div className="text-2xl font-extrabold text-slate-900 mt-2">{displayClicks.toLocaleString()}</div>
-          <div className="text-[11px] text-slate-500 mt-1 font-medium">Outbound clicks across articles</div>
+          <div className="text-[11px] text-slate-500 mt-1 font-medium">
+            {timeRange === 'all' ? 'Lifetime clicks across articles' : `Article clicks (${timeRange === '1d' ? '24h' : timeRange === '1w' ? '7d' : timeRange === '1m' ? '30d' : 'Range'})`}
+          </div>
         </div>
 
         <div className="p-5 rounded-2xl glass-card border border-slate-200 bg-white shadow-xs">
@@ -483,18 +553,26 @@ export default function AnalyticsAdminPage() {
           </p>
         ) : (
           <div className="space-y-2.5">
-            {profileArticles.map((art) => (
-              <div key={art.id} className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-between gap-4">
-                <div className="min-w-0 flex-1">
-                  <div className="text-xs font-bold text-slate-900 truncate">{art.title}</div>
-                  <div className="text-[11px] text-slate-500 font-medium truncate mt-0.5">{art.website_name} • {art.article_url}</div>
+            {profileArticles.map((art) => {
+              const artClicks = timeRange === 'all'
+                ? (art.clicks_count || 0)
+                : (clickEventsInRange.length > 0
+                    ? clickEventsInRange.filter(e => e.article_id === art.id).length
+                    : Math.round(((art.clicks_count || 0) / (totalClicks || 1)) * displayClicks));
+
+              return (
+                <div key={art.id} className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-between gap-4">
+                  <div className="min-w-0 flex-1">
+                    <div className="text-xs font-bold text-slate-900 truncate">{art.title}</div>
+                    <div className="text-[11px] text-slate-500 font-medium truncate mt-0.5">{art.website_name} • {art.article_url}</div>
+                  </div>
+                  <div className="px-3 py-1.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-black shrink-0 flex items-center gap-1.5 shadow-xs">
+                    <MousePointerClick className="w-3.5 h-3.5 text-emerald-600" />
+                    <span>{artClicks.toLocaleString()} Clicks</span>
+                  </div>
                 </div>
-                <div className="px-3 py-1.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-black shrink-0 flex items-center gap-1.5 shadow-xs">
-                  <MousePointerClick className="w-3.5 h-3.5 text-emerald-600" />
-                  <span>{(art.clicks_count || 0).toLocaleString()} Clicks</span>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>

@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useAdminWorkspace } from './layout';
-import { fetchDailyTrafficStatsFromSupabase } from '@/lib/data-store';
+import { fetchDailyTrafficStatsFromSupabase, fetchAnalyticsEventsFromSupabase } from '@/lib/data-store';
 import { normalizeReferrer } from '@/lib/device-detector';
 import {
   FileText,
@@ -21,17 +21,37 @@ export default function OverviewPage() {
 
   useEffect(() => {
     if (activeProfile) {
-      fetchDailyTrafficStatsFromSupabase(activeProfile.id).then((stats) => {
-        let sum = 0;
-        stats.forEach((s) => {
+      Promise.all([
+        fetchDailyTrafficStatsFromSupabase(activeProfile.id),
+        fetchAnalyticsEventsFromSupabase(activeProfile.id),
+      ]).then(([stats, evs]) => {
+        const nonLocalEvs = evs.filter(e => e.event_type === 'profile_view' && normalizeReferrer(e.referrer) !== 'Localhost');
+
+        const eventsByDate: Record<string, number> = {};
+        nonLocalEvs.forEach(ev => {
+          const dStr = new Date(ev.created_at).toISOString().split('T')[0];
+          eventsByDate[dStr] = (eventsByDate[dStr] || 0) + 1;
+        });
+
+        const dailyStatsByDate: Record<string, number> = {};
+        stats.forEach(s => {
+          let dayViewsFromStat = 0;
           const rd = (s as any).referrer_breakdown || {};
           Object.entries(rd).forEach(([p, cnt]) => {
             if (normalizeReferrer(p) !== 'Localhost') {
-              sum += (cnt as number);
+              dayViewsFromStat += (cnt as number);
             }
           });
+          dailyStatsByDate[s.date] = dayViewsFromStat;
         });
-        setDailyTotalViews(sum);
+
+        const allDates = new Set([...Object.keys(eventsByDate), ...Object.keys(dailyStatsByDate)]);
+        let combinedSum = 0;
+        allDates.forEach(dStr => {
+          combinedSum += Math.max(eventsByDate[dStr] || 0, dailyStatsByDate[dStr] || 0);
+        });
+
+        setDailyTotalViews(combinedSum);
       });
     }
   }, [activeProfile]);
