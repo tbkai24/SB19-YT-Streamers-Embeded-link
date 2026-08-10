@@ -257,10 +257,10 @@ export default function AnalyticsAdminPage() {
 
   const clickEventsInRange = filteredEvents.filter(e => e.event_type === 'article_click');
 
-  let displayViews = totalViewsSum;
+  let displayViews = timeRange === 'all' ? Math.max(totalViews, totalViewsSum) : totalViewsSum;
   let displayClicks = timeRange === 'all'
-    ? Math.max(totalClicks, clickEventsInRange.length)
-    : (clickEventsInRange.length > 0 ? clickEventsInRange.length : Math.min(totalClicksSum, totalClicks));
+    ? Math.max(totalClicks, totalClicksSum, clickEventsInRange.length)
+    : Math.max(clickEventsInRange.length, totalClicksSum);
   let uniqueVisitorsCount = uniqueVisitorSet.size;
   let devices = mergedDevices;
   let countriesMap = mergedCountries;
@@ -337,26 +337,27 @@ export default function AnalyticsAdminPage() {
               <option value="1d">1 Day (Last 24h)</option>
               <option value="1w">1 Week (Last 7d)</option>
               <option value="1m">1 Month (Last 30d)</option>
-              <option value="all">All Time (Lifetime Total 🔥)</option>
+              <option value="all">All Time (Lifetime Total)</option>
               <option value="custom">Custom Range...</option>
             </select>
             <ChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-3 pointer-events-none" />
           </div>
 
           {timeRange === 'custom' && (
-            <div className="flex items-center gap-2 bg-white p-1 px-2.5 rounded-xl border border-slate-300 shadow-xs text-xs">
+            <div className="flex flex-wrap items-center gap-1.5 bg-slate-50 p-1.5 px-3 rounded-xl border border-slate-200 shadow-xs text-xs animate-fade-in">
+              <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider">From</span>
               <input
                 type="date"
                 value={startDate}
                 onChange={(e) => setStartDate(e.target.value)}
-                className="bg-transparent text-slate-900 font-semibold focus:outline-none text-xs"
+                className="bg-white border border-slate-200 rounded-lg px-2 py-1 text-slate-800 font-bold text-xs focus:outline-none focus:border-rose-500 shadow-2xs max-w-[130px]"
               />
-              <span className="text-slate-400 font-bold">to</span>
+              <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider px-0.5">To</span>
               <input
                 type="date"
                 value={endDate}
                 onChange={(e) => setEndDate(e.target.value)}
-                className="bg-transparent text-slate-900 font-semibold focus:outline-none text-xs"
+                className="bg-white border border-slate-200 rounded-lg px-2 py-1 text-slate-800 font-bold text-xs focus:outline-none focus:border-rose-500 shadow-2xs max-w-[130px]"
               />
             </div>
           )}
@@ -590,9 +591,7 @@ export default function AnalyticsAdminPage() {
                 {filteredProfileArticles.map((art) => {
                   const artClicks = timeRange === 'all'
                     ? (art.clicks_count || 0)
-                    : (clickEventsInRange.length > 0
-                        ? clickEventsInRange.filter(e => e.article_id === art.id).length
-                        : Math.round(((art.clicks_count || 0) / (totalClicks || 1)) * displayClicks));
+                    : clickEventsInRange.filter(e => e.article_id === art.id).length;
 
                   return (
                     <div key={art.id} className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-between gap-4">

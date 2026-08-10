@@ -676,8 +676,8 @@ export async function recordArticleClick(articleId: string) {
     try {
       const supabase = createClient();
       await Promise.all([
+        supabase.rpc('increment_article_clicks', { a_id: articleId }),
         supabase.from('articles').update({
-          clicks_count: newCount,
           device_breakdown: deviceMap,
           country_breakdown: countryMap,
         }).eq('id', articleId),
