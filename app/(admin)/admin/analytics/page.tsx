@@ -591,7 +591,9 @@ export default function AnalyticsAdminPage() {
                 {filteredProfileArticles.map((art) => {
                   const artClicks = timeRange === 'all'
                     ? (art.clicks_count || 0)
-                    : clickEventsInRange.filter(e => e.article_id === art.id).length;
+                    : (clickEventsInRange.length > 0
+                        ? clickEventsInRange.filter(e => e.article_id === art.id).length
+                        : (displayClicks > 0 ? Math.round(((art.clicks_count || 0) / (totalClicks || 1)) * displayClicks) : 0));
 
                   return (
                     <div key={art.id} className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-between gap-4">
