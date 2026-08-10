@@ -103,10 +103,39 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 ---
 
-## 📱 PWA Reusability Guide for Future Projects
+## 5. 📱 PWA & Web Push Notification Architecture
+
+### Service Worker (`public/sw.js`)
+- Registered at `/sw.js` via `navigator.serviceWorker.register('/sw.js')`.
+- Handles `push` event listeners, parsing JSON payloads (`title`, `message`, `url`, `id`).
+- Employs strict single-notification tagging (`tag: notifTag`, `renotify: false`) to ensure exactly **1 clean notification banner** is displayed per broadcast instead of duplicate spam.
+- Listens to `notificationclick` events, automatically closing the notification banner and navigating to the target URL (or focusing an existing active client window).
+
+### Database Schema for Web Push (`supabase/migrations/20260808000005_create_notifications_tables.sql`)
+1. **`push_subscriptions` Table**:
+   - `id`: `UUID PRIMARY KEY DEFAULT gen_random_uuid()`
+   - `endpoint`: `TEXT UNIQUE NOT NULL`
+   - `keys`: `JSONB` (contains VAPID `p256dh` and `auth` keys)
+   - `user_agent`: `TEXT`
+   - `created_at`: `TIMESTAMPTZ DEFAULT NOW()`
+
+2. **`notifications` Table**:
+   - `id`: `UUID PRIMARY KEY DEFAULT gen_random_uuid()`
+   - `profile_id`: `UUID REFERENCES public.profiles(id)`
+   - `title`: `TEXT NOT NULL`
+   - `message`: `TEXT NOT NULL`
+   - `type`: `TEXT DEFAULT 'announcement'`
+   - `url`: `TEXT DEFAULT '/'`
+   - `status`: `TEXT DEFAULT 'sent'`
+   - `sent_at`: `TIMESTAMPTZ DEFAULT NOW()`
+
+---
+
+## 🚀 PWA & Web App Blueprint Checklist for Future Projects
 
 When building future Web Apps or PWAs:
-1. Include `SOLUTION_SUMMARY.md` in your project reference directory.
-2. Use PostgreSQL RPC functions (`.rpc()`) for any counter/like/view/click action to guarantee zero race conditions.
-3. Protect all public submission API routes with Cloudflare Turnstile verification.
-4. Always log raw event timestamps (`TIMESTAMPTZ`) alongside daily rollup stats (`DATE`) to allow both fast daily aggregation and precise date-range filtering.
+1. Include `SOLUTION_SUMMARY.md` in your project root directory.
+2. Use PostgreSQL RPC functions (`.rpc()`) for any counter/like/view/click action to guarantee zero client race-condition overwrites.
+3. Protect public forms and endpoints with Cloudflare Turnstile anti-bot verification.
+4. Use `analytics_events` with `TIMESTAMPTZ` alongside `daily_traffic_stats` with `DATE` for 100% accurate date-range filtering.
+5. Register `/sw.js` service worker with VAPID web push subscriptions saved to `push_subscriptions` table for instant PWA push notification broadcasts.
