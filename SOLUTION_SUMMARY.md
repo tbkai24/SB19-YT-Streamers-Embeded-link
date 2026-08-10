@@ -46,26 +46,14 @@ CREATE OR REPLACE FUNCTION increment_daily_article_click(
     p_country TEXT
 ) RETURNS VOID AS $$
 BEGIN
-    INSERT INTO public.daily_traffic_stats (profile_id, date, clicks_count, device_breakdown, country_breakdown)
+    INSERT INTO public.daily_traffic_stats (profile_id, date, clicks_count)
     VALUES (
         p_profile_id,
         p_date,
-        1,
-        jsonb_build_object(p_device, 1),
-        jsonb_build_object(p_country, 1)
+        1
     )
     ON CONFLICT (profile_id, date) DO UPDATE SET
         clicks_count = daily_traffic_stats.clicks_count + 1,
-        device_breakdown = jsonb_set(
-            daily_traffic_stats.device_breakdown,
-            ARRAY[p_device],
-            to_jsonb(COALESCE((daily_traffic_stats.device_breakdown->>p_device)::int, 0) + 1)
-        ),
-        country_breakdown = jsonb_set(
-            daily_traffic_stats.country_breakdown,
-            ARRAY[p_country],
-            to_jsonb(COALESCE((daily_traffic_stats.country_breakdown->>p_country)::int, 0) + 1)
-        ),
         updated_at = now();
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
