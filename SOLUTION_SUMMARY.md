@@ -119,6 +119,22 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 ---
 
+## 6. 📊 Analytics Engine Accuracy & Largest Remainder Alignment
+
+### 1. The Problem Solved
+Individual article click counts scaled independently using `Math.round()` produced rounding discrepancies (±1 to ±5 clicks) compared to the `Total Article Clicks` header card. Additionally, un-synced `clicks_count` totals across `articles` vs `daily_traffic_stats` caused UI containers to display lower stale values.
+
+### 2. The Solutions
+1. **Largest Remainder Algorithm (Hare-Niemeyer Method)**:
+   Applied in `app/(admin)/admin/analytics/page.tsx` when rendering the `Per-Article Link Performance` table. The sum of all 15 articles in the UI list is **guaranteed 100% mathematically equal to the Total Article Clicks card at the top** to the exact single digit.
+2. **Database Auto-Sync & Real-Time Polling**:
+   - `analytics/page.tsx` polls fresh analytics data every 5 seconds, updating UI counters live as fans click links.
+   - `fetchArticlesFromSupabase()` clears stale local storage browser cache on load.
+3. **Live Debug API Endpoint (`app/api/admin/debug-analytics/route.ts`)**:
+   Provides `http://localhost:3000/api/admin/debug-analytics` returning raw, untouched JSON metrics directly from Supabase for instant database validation.
+
+---
+
 ## 🚀 PWA & Web App Blueprint Checklist for Future Projects
 
 When building future Web Apps or PWAs:
@@ -127,3 +143,4 @@ When building future Web Apps or PWAs:
 3. Protect public forms and endpoints with Cloudflare Turnstile anti-bot verification.
 4. Use `analytics_events` with `TIMESTAMPTZ` alongside `daily_traffic_stats` with `DATE` for 100% accurate date-range filtering.
 5. Register `/sw.js` service worker with VAPID web push subscriptions saved to `push_subscriptions` table for instant PWA push notification broadcasts.
+6. Always clean up temporary test scripts and dead code after completing work to maintain a clean codebase.
