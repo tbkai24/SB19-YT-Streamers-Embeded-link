@@ -3,9 +3,9 @@ import crypto from 'crypto';
 
 export async function POST(req: NextRequest) {
   try {
-    const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || 'wkmmjpzb';
-    const apiKey = process.env.CLOUDINARY_API_KEY || '498322474662986';
-    const apiSecret = process.env.CLOUDINARY_API_SECRET || 'YXKfV-YIkUep-i6mxrQEd3qoqeM';
+    const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
+    const apiKey = process.env.CLOUDINARY_API_KEY;
+    const apiSecret = process.env.CLOUDINARY_API_SECRET;
     const uploadPreset = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET || 'sb19_preset';
 
     const formData = await req.formData();

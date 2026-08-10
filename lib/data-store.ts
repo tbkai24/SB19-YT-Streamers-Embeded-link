@@ -513,7 +513,11 @@ export function getStoredDailyTrafficStats(): DailyTrafficStat[] {
 
 export function saveDailyTrafficStats(stats: DailyTrafficStat[]) {
   if (typeof window !== 'undefined') {
-    localStorage.setItem(LOCAL_STORAGE_KEY_DAILY_TRAFFIC, JSON.stringify(stats));
+    const existing = getStoredDailyTrafficStats();
+    const map = new Map<string, DailyTrafficStat>();
+    existing.forEach(s => map.set(s.id, s));
+    stats.forEach(s => map.set(s.id, s));
+    localStorage.setItem(LOCAL_STORAGE_KEY_DAILY_TRAFFIC, JSON.stringify(Array.from(map.values())));
   }
 }
 
@@ -562,25 +566,7 @@ export async function recordProfileView(profileId: string) {
 
   const profiles = getStoredProfiles();
   const idx = profiles.findIndex(p => p.id === profileId);
-  let newCount = 1;
-  let deviceMap: Record<string, number> = { mobile: 0, desktop: 0, tablet: 0 };
-  let countryMap: Record<string, number> = {};
 
-  if (idx >= 0) {
-    const prof = profiles[idx];
-    newCount = (prof.views_count || 0) + 1;
-    prof.views_count = newCount;
-
-    deviceMap = { mobile: 0, desktop: 0, tablet: 0, ...(prof.device_breakdown || {}) };
-    deviceMap[device] = (deviceMap[device] || 0) + 1;
-    prof.device_breakdown = deviceMap;
-
-    countryMap = { ...(prof.country_breakdown || {}) };
-    countryMap[country] = (countryMap[country] || 0) + 1;
-    prof.country_breakdown = countryMap;
-
-    saveProfiles(profiles);
-  }
 
   const todayStr = new Date().toISOString().split('T')[0];
   const nowIso = new Date().toISOString();
@@ -602,10 +588,6 @@ export async function recordProfileView(profileId: string) {
   try {
     const supabase = createClient();
     await Promise.all([
-      supabase.from('profiles').update({
-        device_breakdown: deviceMap,
-        country_breakdown: countryMap,
-      }).eq('id', profileId),
       supabase.rpc('increment_profile_views', { p_id: profileId }),
       supabase.from('analytics_events').insert(newEvent),
       supabase.rpc('increment_daily_profile_view', {
@@ -641,18 +623,6 @@ export async function recordArticleClick(articleId: string) {
   if (idx >= 0) {
     const art = articles[idx];
     targetProfileId = art.profile_id;
-    newCount = (art.clicks_count || 0) + 1;
-    art.clicks_count = newCount;
-
-    deviceMap = { mobile: 0, desktop: 0, tablet: 0, ...(art.device_breakdown || {}) };
-    deviceMap[device] = (deviceMap[device] || 0) + 1;
-    art.device_breakdown = deviceMap;
-
-    countryMap = { ...(art.country_breakdown || {}) };
-    countryMap[country] = (countryMap[country] || 0) + 1;
-    art.country_breakdown = countryMap;
-
-    saveArticles(articles);
   }
 
   if (targetProfileId) {
@@ -677,10 +647,6 @@ export async function recordArticleClick(articleId: string) {
       const supabase = createClient();
       await Promise.all([
         supabase.rpc('increment_article_clicks', { a_id: articleId }),
-        supabase.from('articles').update({
-          device_breakdown: deviceMap,
-          country_breakdown: countryMap,
-        }).eq('id', articleId),
         supabase.from('analytics_events').insert(newEvent),
         supabase.rpc('increment_daily_article_click', {
           p_profile_id: targetProfileId,

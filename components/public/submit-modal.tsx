@@ -175,7 +175,7 @@ export function SubmitModal({ profile, isOpen, onClose, onSuccess }: SubmitModal
         {/* Fixed Header */}
         <div className="flex items-center justify-between p-6 sm:p-7 pb-4 sm:pb-5 border-b border-slate-100 bg-white shrink-0">
           <div className="flex items-center gap-2.5 min-w-0 pr-2">
-            <div 
+            <div
               className="w-3.5 h-3.5 rounded-full shrink-0 shadow-xs border border-slate-300"
               style={{ backgroundColor: profile.accent_color || '#e11d48' }}
             />
@@ -272,7 +272,7 @@ export function SubmitModal({ profile, isOpen, onClose, onSuccess }: SubmitModal
                 </button>
               </div>
               <p className="text-[11px] text-slate-500 mt-1 font-medium">
-                {isEngagement 
+                {isEngagement
                   ? 'Paste a TikTok, Facebook, X/Twitter, or Instagram post link to add to the engagement hub.'
                   : 'Paste a news, interview, or review link about SB19 for admin verification.'}
               </p>
@@ -290,11 +290,10 @@ export function SubmitModal({ profile, isOpen, onClose, onSuccess }: SubmitModal
                       key={plat.value}
                       type="button"
                       onClick={() => setSelectedPlatform(plat.value)}
-                      className={`px-3 py-2 rounded-xl border text-xs font-bold transition-all cursor-pointer text-center justify-center ${
-                        selectedPlatform === plat.value
+                      className={`px-3 py-2 rounded-xl border text-xs font-bold transition-all cursor-pointer text-center justify-center ${selectedPlatform === plat.value
                           ? 'bg-purple-600 text-white border-purple-600 shadow-xs'
                           : 'bg-white border-slate-200 text-slate-700 hover:border-slate-300'
-                      }`}
+                        }`}
                     >
                       <span className="truncate">{plat.label}</span>
                     </button>

@@ -213,9 +213,10 @@ export default function AnalyticsAdminPage() {
       return acc;
     }, { mobile: 0, desktop: 0, tablet: 0 } as Record<string, number>);
 
-    mergedDevices.mobile += Math.max(dayEventDevices.mobile || 0, dayStatDevices.mobile || 0);
-    mergedDevices.desktop += Math.max(dayEventDevices.desktop || 0, dayStatDevices.desktop || 0);
-    mergedDevices.tablet += Math.max(dayEventDevices.tablet || 0, dayStatDevices.tablet || 0);
+    const hasDayStatDev = dayStat && Object.keys(dayStatDevices).length > 0;
+    mergedDevices.mobile += hasDayStatDev ? (dayStatDevices.mobile || 0) : (dayEventDevices.mobile || 0);
+    mergedDevices.desktop += hasDayStatDev ? (dayStatDevices.desktop || 0) : (dayEventDevices.desktop || 0);
+    mergedDevices.tablet += hasDayStatDev ? (dayStatDevices.tablet || 0) : (dayEventDevices.tablet || 0);
 
     // Countries for this day
     const dayStatCountries = dayStat?.country_breakdown || {};
@@ -224,9 +225,11 @@ export default function AnalyticsAdminPage() {
       return acc;
     }, {} as Record<string, number>);
 
-    const dayCountryKeys = new Set([...Object.keys(dayStatCountries), ...Object.keys(dayEventCountries)]);
-    dayCountryKeys.forEach(c => {
-      mergedCountries[c] = (mergedCountries[c] || 0) + Math.max(dayEventCountries[c] || 0, dayStatCountries[c] || 0);
+    const hasDayStatCty = dayStat && Object.keys(dayStatCountries).length > 0;
+    const activeCtyMap = hasDayStatCty ? dayStatCountries : dayEventCountries;
+
+    Object.entries(activeCtyMap).forEach(([c, cnt]) => {
+      mergedCountries[c] = (mergedCountries[c] || 0) + (cnt as number);
     });
 
     // Referrers for this day
@@ -261,34 +264,48 @@ export default function AnalyticsAdminPage() {
   let displayClicks = timeRange === 'all'
     ? Math.max(totalClicks, totalClicksSum, clickEventsInRange.length)
     : Math.max(clickEventsInRange.length, totalClicksSum);
-  let uniqueVisitorsCount = uniqueVisitorSet.size;
-  let devices = mergedDevices;
-  let countriesMap = mergedCountries;
   let referrersMap = mergedReferrers;
+  let uniqueVisitorsCount = uniqueVisitorSet.size;
 
-  // When All Time is selected, aggregate lifetime counters from activeProfile and articles
+  // Aggregate lifetime views from activeProfile for All Time view
   if (timeRange === 'all') {
     displayViews = Math.max(totalViews, displayViews);
     displayClicks = Math.max(totalClicks, displayClicks);
-
-    const profCountries = activeProfile.country_breakdown || {};
-    Object.entries(profCountries).forEach(([c, cnt]) => {
-      countriesMap[c] = Math.max(countriesMap[c] || 0, cnt as number);
-    });
-
-    const profDevices = activeProfile.device_breakdown || {};
-    devices.mobile = Math.max(devices.mobile || 0, profDevices.mobile || 0);
-    devices.desktop = Math.max(devices.desktop || 0, profDevices.desktop || 0);
-    devices.tablet = Math.max(devices.tablet || 0, profDevices.tablet || 0);
   }
 
-  const mobileCount = devices.mobile || 0;
-  const desktopCount = devices.desktop || 0;
-  const tabletCount = devices.tablet || 0;
+  // Scale Visitor Devices to match displayViews so sum equals Total Profile Views
+  const rawGrandTotalDevices = (mergedDevices.mobile || 0) + (mergedDevices.desktop || 0) + (mergedDevices.tablet || 0);
+
+  const mobileCount = rawGrandTotalDevices > 0 && displayViews > 0
+    ? Math.round(((mergedDevices.mobile || 0) / rawGrandTotalDevices) * displayViews)
+    : (mergedDevices.mobile || 0);
+
+  const desktopCount = rawGrandTotalDevices > 0 && displayViews > 0
+    ? Math.round(((mergedDevices.desktop || 0) / rawGrandTotalDevices) * displayViews)
+    : (mergedDevices.desktop || 0);
+
+  const tabletCount = rawGrandTotalDevices > 0 && displayViews > 0
+    ? Math.max(0, displayViews - (mobileCount + desktopCount))
+    : (mergedDevices.tablet || 0);
+
   const grandTotalDevices = mobileCount + desktopCount + tabletCount || 1;
   const mobilePct = Math.round((mobileCount / grandTotalDevices) * 100);
   const desktopPct = Math.round((desktopCount / grandTotalDevices) * 100);
   const tabletPct = Math.round((tabletCount / grandTotalDevices) * 100);
+
+  // Scale Visitor Countries to match displayViews so sum equals Total Profile Views
+  const rawGrandTotalCountries = Object.values(mergedCountries).reduce((a, b) => a + Number(b || 0), 0);
+  let countriesMap: Record<string, number> = {};
+
+  if (rawGrandTotalCountries > 0 && displayViews > 0) {
+    const scale = displayViews / rawGrandTotalCountries;
+    Object.entries(mergedCountries).forEach(([c, cnt]) => {
+      const scaledVal = Math.round(Number(cnt || 0) * scale);
+      if (scaledVal > 0) countriesMap[c] = scaledVal;
+    });
+  } else {
+    Object.assign(countriesMap, mergedCountries);
+  }
 
   const countryList = Object.entries(countriesMap).sort((a, b) => b[1] - a[1]);
   const referrerList = Object.entries(referrersMap).sort((a, b) => b[1] - a[1]);
