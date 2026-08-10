@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useAdminWorkspace } from '../layout';
-import { getStoredProfiles, saveProfiles, saveProfileToSupabase, fetchAnalyticsEventsFromSupabase, fetchDailyTrafficStatsFromSupabase } from '@/lib/data-store';
+import { getStoredProfiles, saveProfiles, saveProfileToSupabase, fetchAnalyticsEventsFromSupabase, fetchDailyTrafficStatsFromSupabase, fetchArticlesFromSupabase } from '@/lib/data-store';
 import { AnalyticsEvent, DailyTrafficStat } from '@/types/database';
 import { getCountryFlagEmoji, COUNTRY_NAMES, getCountryName, normalizeReferrer } from '@/lib/device-detector';
 import { BarChart3, Search, Eye, MousePointerClick, ShieldCheck, Check, Save, Smartphone, Laptop, Tablet, Globe, Calendar, ChevronDown, Users, Share2, Maximize2, X, TrendingUp, Sparkles } from 'lucide-react';
@@ -77,19 +77,28 @@ export default function AnalyticsAdminPage() {
   const [dailyStats, setDailyStats] = useState<DailyTrafficStat[]>([]);
 
   useEffect(() => {
-    if (activeProfile) {
-      setSeoTitle(activeProfile.seo_title || `${activeProfile.title} - SB19 YouTube Streamers`);
-      setSeoDescription(activeProfile.seo_description || activeProfile.description || '');
+    if (!activeProfile) return;
 
+    setSeoTitle(activeProfile.seo_title || `${activeProfile.title} - SB19 YouTube Streamers`);
+    setSeoDescription(activeProfile.seo_description || activeProfile.description || '');
+
+    const loadLiveAnalytics = () => {
       Promise.all([
         fetchAnalyticsEventsFromSupabase(activeProfile.id),
         fetchDailyTrafficStatsFromSupabase(activeProfile.id),
+        fetchArticlesFromSupabase(),
       ]).then(([evs, stats]) => {
         setEvents(evs);
         setDailyStats(stats);
+        refreshData();
       });
-    }
-  }, [activeProfile]);
+    };
+
+    loadLiveAnalytics();
+    const interval = setInterval(loadLiveAnalytics, 5000);
+
+    return () => clearInterval(interval);
+  }, [activeProfile, refreshData]);
 
   if (!activeProfile) return null;
 
@@ -123,6 +132,8 @@ export default function AnalyticsAdminPage() {
   const d1Cutoff = new Date(now - 24 * 60 * 60 * 1000).toISOString().split('T')[0];
   const d7Cutoff = new Date(now - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
   const d30Cutoff = new Date(now - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+  const datesSorted = Array.from(new Set(dailyStats.map(d => d.date))).sort().reverse();
+  const latestDate = datesSorted[0] || new Date(now).toISOString().split('T')[0];
 
   const filteredDailyStats = dailyStats.filter(ds => {
     if (timeRange === '1d') return ds.date >= d1Cutoff;
@@ -260,15 +271,17 @@ export default function AnalyticsAdminPage() {
 
   const clickEventsInRange = filteredEvents.filter(e => e.event_type === 'article_click');
 
-  let displayViews = timeRange === 'all' ? Math.max(totalViews, totalViewsSum) : totalViewsSum;
-  let displayClicks = timeRange === 'all'
+  const isFullHistoryIncluded = filteredDailyStats.length >= dailyStats.length && dailyStats.length > 0;
+
+  let displayViews = (timeRange === 'all' || isFullHistoryIncluded) ? Math.max(totalViews, totalViewsSum) : totalViewsSum;
+  let displayClicks = (timeRange === 'all' || isFullHistoryIncluded)
     ? Math.max(totalClicks, totalClicksSum, clickEventsInRange.length)
     : Math.max(clickEventsInRange.length, totalClicksSum);
   let referrersMap = mergedReferrers;
   let uniqueVisitorsCount = uniqueVisitorSet.size;
 
   // Aggregate lifetime views from activeProfile for All Time view
-  if (timeRange === 'all') {
+  if (timeRange === 'all' || isFullHistoryIncluded) {
     displayViews = Math.max(totalViews, displayViews);
     displayClicks = Math.max(totalClicks, displayClicks);
   }
@@ -605,14 +618,31 @@ export default function AnalyticsAdminPage() {
               </p>
             ) : (
               <div className="space-y-2.5">
-                {filteredProfileArticles.map((art) => {
-                  const artClicks = timeRange === 'all'
-                    ? (art.clicks_count || 0)
-                    : (clickEventsInRange.length > 0
-                        ? clickEventsInRange.filter(e => e.article_id === art.id).length
-                        : (displayClicks > 0 ? Math.round(((art.clicks_count || 0) / (totalClicks || 1)) * displayClicks) : 0));
+                {(() => {
+                  const items = filteredProfileArticles.map(art => {
+                    if (timeRange === 'all' || isFullHistoryIncluded) {
+                      return { art, clicks: art.clicks_count || 0 };
+                    }
+                    const scaled = displayClicks > 0 ? ((art.clicks_count || 0) / (totalClicks || 1)) * displayClicks : 0;
+                    return {
+                      art,
+                      clicks: Math.floor(scaled),
+                      remainder: scaled - Math.floor(scaled)
+                    };
+                  });
 
-                  return (
+                  if (timeRange !== 'all' && !isFullHistoryIncluded && displayClicks > 0) {
+                    const currentSum = items.reduce((sum, item) => sum + item.clicks, 0);
+                    let diff = displayClicks - currentSum;
+                    if (diff > 0) {
+                      const sortedByRemainder = [...items].sort((a, b) => (b.remainder || 0) - (a.remainder || 0));
+                      for (let i = 0; i < diff && i < sortedByRemainder.length; i++) {
+                        sortedByRemainder[i].clicks += 1;
+                      }
+                    }
+                  }
+
+                  return items.map(({ art, clicks }) => (
                     <div key={art.id} className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-between gap-4">
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2 mb-0.5">
@@ -625,11 +655,11 @@ export default function AnalyticsAdminPage() {
                       </div>
                       <div className="px-3 py-1.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-black shrink-0 flex items-center gap-1.5 shadow-xs">
                         <MousePointerClick className="w-3.5 h-3.5 text-emerald-600" />
-                        <span>{artClicks.toLocaleString()} Clicks</span>
+                        <span>{clicks.toLocaleString()} Clicks</span>
                       </div>
                     </div>
-                  );
-                })}
+                  ));
+                })()}
               </div>
             )}
           </div>
