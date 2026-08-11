@@ -58,18 +58,19 @@ export function SubmitModal({ profile, isOpen, onClose, onSuccess }: SubmitModal
 
   const checkDuplicate = (inputUrl: string): boolean => {
     if (!inputUrl.trim()) return false;
-    const normalized = normalizeUrl(inputUrl);
     const articles = getStoredArticles();
     const submissions = getStoredSubmissions();
 
-    const publishedUrls = articles.map(a => a.canonical_url || a.article_url);
-    if (isDuplicateUrl(normalized, publishedUrls)) {
+    const publishedUrls = articles.flatMap(a => [a.canonical_url, a.article_url].filter(Boolean) as string[]);
+    if (isDuplicateUrl(inputUrl, publishedUrls)) {
       setErrorMsg('This link already exists in the directory!');
       return true;
     }
 
-    const pendingUrls = submissions.filter(s => s.status === 'pending').map(s => s.canonical_url || s.article_url);
-    if (isDuplicateUrl(normalized, pendingUrls)) {
+    const pendingUrls = submissions
+      .filter(s => s.status === 'pending')
+      .flatMap(s => [s.canonical_url, s.article_url].filter(Boolean) as string[]);
+    if (isDuplicateUrl(inputUrl, pendingUrls)) {
       setErrorMsg('This link is already submitted and pending admin review!');
       return true;
     }

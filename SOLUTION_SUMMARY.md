@@ -135,12 +135,33 @@ Individual article click counts scaled independently using `Math.round()` produc
 
 ---
 
+## 7. 🔗 Content Fingerprinting & Multi-Format Duplicate URL Prevention
+
+### 1. The Problem Solved
+Users often submit different URL variations pointing to the exact same content or post (e.g. Reddit share IDs, YouTube shortened links, X/Twitter query parameters, Instagram reels, TikTok tracking flags). Without canonical normalization, duplicate content bypasses standard string comparisons.
+
+### 2. The Multi-Layered Solutions (`lib/url-normalizer.ts` & `app/api/extract-metadata/route.ts`)
+1. **Comprehensive Tracking Parameter Stripping**:
+   Automatically strips `utm_source`, `utm_medium`, `fbclid`, `igsh`, `si`, `s`, `t`, `_t`, `_r`, `ref_src`, `share_id`, `mibextid`, `context`, `rdt`, `feature`, `is_from_webapp`, `sender_device`, and `st`.
+2. **Platform Content Fingerprinting (`extractContentFingerprint()`)**:
+   Extracts unique canonical post/video IDs across major social networks:
+   - **Reddit**: `reddit:1vbgby9` (matches `reddit.com/r/.../comments/1vbgby9`, `redd.it/1vbgby9`, `m.reddit.com/...`)
+   - **YouTube**: `youtube:VIDEO_ID` (matches `youtube.com/watch?v=ID`, `youtu.be/ID`, `youtube.com/shorts/ID`, `youtube.com/live/ID`)
+   - **X / Twitter**: `twitter:TWEET_ID` (matches `x.com/status/ID`, `twitter.com/status/ID`, `x.com/i/status/ID`)
+   - **Instagram**: `instagram:POST_ID` (matches `instagram.com/p/ID`, `instagram.com/reel/ID`)
+   - **TikTok**: `tiktok:VIDEO_ID` (matches `tiktok.com/@user/video/ID`)
+3. **HTML OpenGraph & `<link rel="canonical">` Extraction**:
+   Server-side `/api/extract-metadata` parses the webpage HTML `<link rel="canonical">` and `<meta property="og:url">` tags, ensuring true underlying canonical destination URLs are resolved even for shortened or redirected URLs.
+
+---
+
 ## 🚀 PWA & Web App Blueprint Checklist for Future Projects
 
 When building future Web Apps or PWAs:
 1. Include `SOLUTION_SUMMARY.md` in your project root directory.
 2. Use PostgreSQL RPC functions (`.rpc()`) for any counter/like/view/click action to guarantee zero client race-condition overwrites.
-3. Protect public forms and endpoints with Cloudflare Turnstile anti-bot verification.
+3. Protect public forms and endpoints with Cloudflare Turnflare anti-bot verification.
 4. Use `analytics_events` with `TIMESTAMPTZ` alongside `daily_traffic_stats` with `DATE` for 100% accurate date-range filtering.
 5. Register `/sw.js` service worker with VAPID web push subscriptions saved to `push_subscriptions` table for instant PWA push notification broadcasts.
-6. Always clean up temporary test scripts and dead code after completing work to maintain a clean codebase.
+6. Use `extractContentFingerprint()` and HTML `<link rel="canonical">` extraction to prevent duplicate submissions across different URL formats.
+7. Always clean up temporary test scripts and dead code after completing work to maintain a clean codebase.

@@ -1,6 +1,6 @@
 /**
- * Normalizes a URL by removing tracking parameters (UTM, fbclid, gclid, etc.),
- * stripping trailing slashes, ensuring consistent protocol, and returning a clean string.
+ * Normalizes a URL by removing all tracking parameters (UTM, fbclid, igsh, si, etc.),
+ * stripping trailing slashes, standardizing mobile/shortened hostnames, and returning a clean canonical string.
  */
 export function normalizeUrl(rawUrl: string): string {
   if (!rawUrl) return '';
@@ -12,17 +12,62 @@ export function normalizeUrl(rawUrl: string): string {
 
   try {
     const parsed = new URL(formatted);
-    
-    // Params to strip
+    let hostname = parsed.hostname.toLowerCase().replace(/^www\./, '');
+    let pathname = parsed.pathname;
+
+    // 1. Comprehensive list of tracking & social share query parameters to strip
     const trackingParams = [
       'utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content',
-      'fbclid', 'gclid', 'msclkid', '_ga', '_gl', 'ref', 'source', 'share_id'
+      'fbclid', 'gclid', 'msclkid', '_ga', '_gl', 'ref', 'source', 'share_id',
+      'igsh', 'ig_rid', 'si', 's', 't', '_t', '_r', 'ref_src', 'mibextid',
+      'context', 'rdt', 'feature', 'is_from_webapp', 'sender_device', 'st'
     ];
 
     trackingParams.forEach(param => parsed.searchParams.delete(param));
 
+    // 2. Platform-specific URL standardization
+
+    // YouTube: Shortened (youtu.be) -> Standard Watch URL
+    if (hostname === 'youtu.be') {
+      const videoId = pathname.substring(1);
+      if (videoId) {
+        hostname = 'youtube.com';
+        pathname = '/watch';
+        parsed.searchParams.set('v', videoId);
+      }
+    }
+    // YouTube Mobile (m.youtube.com)
+    if (hostname === 'm.youtube.com') {
+      hostname = 'youtube.com';
+    }
+
+    // X / Twitter Standardization (x.com <-> twitter.com)
+    if (hostname === 'x.com') {
+      hostname = 'twitter.com';
+    }
+
+    // Reddit Shortened (redd.it) & Mobile
+    if (hostname === 'redd.it') {
+      const postId = pathname.substring(1);
+      if (postId) {
+        hostname = 'reddit.com';
+        pathname = `/comments/${postId}`;
+      }
+    }
+    if (hostname === 'm.reddit.com' || hostname === 'old.reddit.com') {
+      hostname = 'reddit.com';
+    }
+
+    // Reddit Post Title stripping (e.g. /r/sub/comments/ID/post_title/ -> /r/sub/comments/ID)
+    if (hostname === 'reddit.com' && pathname.includes('/comments/')) {
+      const match = pathname.match(/(\/r\/[^\/]+\/comments\/[a-z0-9]+)/i) || pathname.match(/(\/comments\/[a-z0-9]+)/i);
+      if (match) {
+        pathname = match[1];
+      }
+    }
+
     // Reconstruct clean URL
-    let clean = `${parsed.protocol}//${parsed.hostname.toLowerCase()}${parsed.pathname}`;
+    let clean = `${parsed.protocol}//${hostname}${pathname}`;
     
     // Strip trailing slash if path is longer than '/'
     if (clean.length > 1 && clean.endsWith('/')) {
@@ -36,9 +81,44 @@ export function normalizeUrl(rawUrl: string): string {
     }
 
     return clean;
-  } catch (error) {
+  } catch {
     return rawUrl.trim();
   }
+}
+
+/**
+ * Extracts a unique Content Fingerprint for major social & video platforms (YouTube, Reddit, X/Twitter, Instagram, TikTok).
+ * If two URLs produce the same fingerprint (e.g. reddit:1vbgby9 or youtube:dQw4w9WgXcQ), they point to the exact same content.
+ */
+export function extractContentFingerprint(rawUrl?: string | null): string | null {
+  if (!rawUrl) return null;
+  const clean = normalizeUrl(rawUrl).toLowerCase();
+
+  // 1. YouTube Video / Shorts / Live ID
+  const ytMatch = clean.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|shorts\/|live\/))([\w-]{11})/i);
+  if (ytMatch && ytMatch[1]) return `youtube:${ytMatch[1]}`;
+
+  // 2. Reddit Post ID
+  const redditMatch = clean.match(/(?:reddit\.com|redd\.it)\/(?:r\/[^\/]+\/)?comments\/([a-z0-9]+)/i);
+  if (redditMatch && redditMatch[1]) return `reddit:${redditMatch[1]}`;
+
+  // 3. X / Twitter Status ID
+  const twitterMatch = clean.match(/(?:twitter\.com|x\.com)\/(?:[^\/]+\/)?status\/(\d+)/i);
+  if (twitterMatch && twitterMatch[1]) return `twitter:${twitterMatch[1]}`;
+
+  // 4. Instagram Post / Reel ID
+  const igMatch = clean.match(/(?:instagram\.com|instagr\.am)\/(?:p|reel|tv)\/([a-zA-Z0-9_-]+)/i);
+  if (igMatch && igMatch[1]) return `instagram:${igMatch[1]}`;
+
+  // 5. TikTok Video ID
+  const ttMatch = clean.match(/tiktok\.com\/@[^\/]+\/video\/(\d+)/i);
+  if (ttMatch && ttMatch[1]) return `tiktok:${ttMatch[1]}`;
+
+  // 6. Facebook Post / Story / Photo ID
+  const fbMatch = clean.match(/(?:facebook\.com|fb\.com|m\.facebook\.com)\/.*?(?:story_fbid=|posts\/|photos\/|permalink\.php\?story_fbid=)(pfbid[a-zA-Z0-9]+|\d+)/i);
+  if (fbMatch && fbMatch[1]) return `facebook:${fbMatch[1]}`;
+
+  return null;
 }
 
 /**
@@ -46,16 +126,31 @@ export function normalizeUrl(rawUrl: string): string {
  */
 export function extractYouTubeId(url?: string | null): string | null {
   if (!url) return null;
-  const match = url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))([\w-]{11})/);
+  const match = url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=|shorts\/|live\/))([\w-]{11})/i);
   return match && match[1] ? match[1] : null;
 }
 
 /**
  * Checks if a given input URL matches a canonical/normalized URL in an existing list.
+ * Compares both normalized URLs AND social platform content fingerprints (Reddit, X, YouTube, Instagram, TikTok).
  */
 export function isDuplicateUrl(inputUrl: string, existingUrls: string[]): boolean {
+  if (!inputUrl) return false;
   const normalizedInput = normalizeUrl(inputUrl);
-  return existingUrls.some(url => normalizeUrl(url) === normalizedInput);
+  const fingerprintInput = extractContentFingerprint(inputUrl);
+
+  return existingUrls.some(url => {
+    if (!url) return false;
+    const normExisting = normalizeUrl(url);
+    if (normExisting === normalizedInput) return true;
+
+    if (fingerprintInput) {
+      const fpExisting = extractContentFingerprint(url);
+      if (fpExisting && fpExisting === fingerprintInput) return true;
+    }
+
+    return false;
+  });
 }
 
 /**

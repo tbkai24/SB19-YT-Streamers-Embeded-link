@@ -134,10 +134,14 @@ export async function POST(request: Request) {
 
     const siteName = getMetaTag('og:site_name') || getWebsiteNameFromHost(host);
     const canonicalMatch = html.match(/<link[^>]*rel=["']canonical["'][^>]*href=["']([^"']*)["']/i);
+    const ogUrlMatch = html.match(/<meta[^>]*property=["']og:url["'][^>]*content=["']([^"']*)["']/i);
+    
+    const rawCanonical = canonicalMatch ? canonicalMatch[1] : (ogUrlMatch ? ogUrlMatch[1] : cleanUrl);
+    const resolvedCanonical = normalizeUrl(rawCanonical.startsWith('http') ? rawCanonical : `${parsedUrl.protocol}//${parsedUrl.host}${rawCanonical}`);
 
     return NextResponse.json({
       url: cleanUrl,
-      canonicalUrl: canonicalMatch ? canonicalMatch[1] : cleanUrl,
+      canonicalUrl: resolvedCanonical,
       title: decodeHtmlEntities(cleanTitle),
       description: desc,
       websiteName: decodeHtmlEntities(siteName),
