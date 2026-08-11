@@ -1,8 +1,0 @@
-{
-  "crons": [
-    {
-      "path": "/api/admin/auto-backup",
-      "schedule": "0 */3 * * *"
-    }
-  ]
-}
