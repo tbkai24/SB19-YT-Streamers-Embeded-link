@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { useAdminWorkspace } from '../layout';
 import { Article, ExtractedMetadata } from '@/types/database';
-import { getStoredArticles, saveArticles, saveArticleToSupabase, deleteArticleFromSupabase, generateUUID } from '@/lib/data-store';
+import { getStoredArticles, saveArticles, saveArticleToSupabase, updateArticleStatusInSupabase, deleteArticleFromSupabase, generateUUID } from '@/lib/data-store';
 import { normalizeUrl, decodeHtmlEntities, isEligibleForArticleOfTheDay, translateTextToEnglish } from '@/lib/url-normalizer';
 import { ImageUploadInput } from '@/components/admin/image-upload-input';
 import { DeleteConfirmModal } from '@/components/admin/delete-confirm-modal';
@@ -285,7 +285,7 @@ export default function ArticlesAdminPage() {
     };
     const updated = allArticles.map(a => a.id === softDeleteTarget.id ? updatedArticle : a);
     saveArticles(updated);
-    await saveArticleToSupabase(updatedArticle);
+    await updateArticleStatusInSupabase(softDeleteTarget.id, 'archived');
     refreshData();
     showToast(`"${softDeleteTarget.title}" moved to Recycle Bin.`, 'info');
     setSoftDeleteTarget(null);
@@ -301,7 +301,7 @@ export default function ArticlesAdminPage() {
     };
     const updated = allArticles.map(a => a.id === art.id ? updatedArticle : a);
     saveArticles(updated);
-    await saveArticleToSupabase(updatedArticle);
+    await updateArticleStatusInSupabase(art.id, 'published');
     refreshData();
     showToast(`"${art.title}" restored to Active Articles!`, 'success');
   };

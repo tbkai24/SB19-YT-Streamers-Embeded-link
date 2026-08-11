@@ -1,4 +1,4 @@
-import { Profile, Article, ArticleSubmission, ExtractedMetadata, AnalyticsEvent, DailyTrafficStat, NotificationItem } from '@/types/database';
+import { Profile, Article, ArticleSubmission, ExtractedMetadata, AnalyticsEvent, DailyTrafficStat, NotificationItem, ArticleStatus } from '@/types/database';
 import { createClient } from '@/lib/supabase/client';
 import { normalizeUrl, isDuplicateUrl } from './url-normalizer';
 import { detectDeviceType, detectCountryCode, normalizeReferrer, getClientIp } from './device-detector';
@@ -296,6 +296,33 @@ export async function saveArticleToSupabase(article: Partial<Article>): Promise<
     return { success: false, error: err?.message || 'Server error while saving article.' };
   }
   return { success: false, error: 'Failed to save article.' };
+}
+
+export async function updateArticleStatusInSupabase(articleId: string, status: ArticleStatus): Promise<{ success: boolean; error?: string }> {
+  clearDataStoreCache();
+  const current = getStoredArticles();
+  const idx = current.findIndex(a => a.id === articleId);
+  if (idx >= 0) {
+    current[idx] = { ...current[idx], status, updated_at: new Date().toISOString() };
+    saveArticles(current);
+  }
+
+  try {
+    const supabase = createClient();
+    const { error } = await supabase
+      .from('articles')
+      .update({ status, updated_at: new Date().toISOString() })
+      .eq('id', articleId);
+
+    if (error) {
+      console.warn('Supabase updateArticleStatus notice:', error.message || error);
+      return { success: false, error: error.message };
+    }
+    return { success: true };
+  } catch (err: any) {
+    console.warn('Supabase updateArticleStatus notice:', err?.message || err);
+    return { success: false, error: err?.message };
+  }
 }
 
 export async function deleteArticleFromSupabase(articleId: string): Promise<{ success: boolean; error?: string }> {
