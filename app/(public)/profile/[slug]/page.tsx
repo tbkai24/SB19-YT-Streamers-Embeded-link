@@ -289,15 +289,6 @@ export default function PublicProfilePage({ params }: ProfilePageProps) {
 
           {/* Social Icons */}
           <SocialLinks profile={profile} />
-
-          {/* Support Streamers Button */}
-          <button
-            onClick={() => setIsSupportOpen(true)}
-            className="mt-3 inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-700 hover:text-rose-800 text-xs font-bold transition-all shadow-xs active:scale-95 cursor-pointer"
-          >
-            <Heart className="w-3.5 h-3.5 text-rose-600 fill-rose-500" />
-            <span>Support Streamers (Donation / QR)</span>
-          </button>
         </div>
 
         {/* Featured Official MV Video Player */}
@@ -426,7 +417,7 @@ export default function PublicProfilePage({ params }: ProfilePageProps) {
           </button>
         </div>
 
-        <PublicFooter />
+        <PublicFooter onOpenSupport={() => setIsSupportOpen(true)} />
       </main>
 
       {/* Community Submit Modal */}

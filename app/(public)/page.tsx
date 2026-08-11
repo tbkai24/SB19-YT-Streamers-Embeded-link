@@ -8,6 +8,7 @@ import { getCloudinaryImageUrl } from '@/lib/cloudinary';
 import { PublicFooter } from '@/components/public/footer';
 import { BrandLogo } from '@/components/public/logo';
 import { CountryBreakdownModal } from '@/components/public/country-modal';
+import { SupportModal } from '@/components/public/support-modal';
 import { getCountryFlagEmoji } from '@/lib/device-detector';
 import { Search, Sparkles, ArrowRight, Music, Globe } from 'lucide-react';
 
@@ -17,6 +18,7 @@ export default function PublicHomePage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [activeCountryProfile, setActiveCountryProfile] = useState<Profile | null>(null);
+  const [isSupportModalOpen, setIsSupportModalOpen] = useState(false);
 
   const loadData = async () => {
     // 1. Initial local load
@@ -174,7 +176,21 @@ export default function PublicHomePage() {
           )}
         </div>
 
-        <PublicFooter />
+        {(() => {
+          const supportProfile = profiles.find(p => (p.support_qr_options && p.support_qr_options.length > 0) || p.support_qr_image) || profiles[0] || null;
+          return (
+            <>
+              <PublicFooter onOpenSupport={supportProfile ? () => setIsSupportModalOpen(true) : undefined} />
+              {supportProfile && (
+                <SupportModal
+                  profile={supportProfile}
+                  isOpen={isSupportModalOpen}
+                  onClose={() => setIsSupportModalOpen(false)}
+                />
+              )}
+            </>
+          );
+        })()}
       </main>
 
       {/* Floating Country Breakdown Modal */}

@@ -42,8 +42,8 @@ export function SupportModal({ profile, isOpen, onClose }: SupportModalProps) {
   const currentOpt = options.find(o => o.id === selectedOptId) || options[0] || null;
 
   const qrImageUrl = currentOpt?.qr_image ? getCloudinaryImageUrl(currentOpt.qr_image, { width: 800 }) : null;
-  const title = profile.support_title || `Support ${profile.title}`;
-  const note = profile.support_note || 'Scan the QR code or copy the account details below to support our streaming efforts!';
+  const title = profile.support_title || 'Support Project & Hosting Maintenance';
+  const note = profile.support_note || 'Optional support to help maintain server and hosting costs for the SB19 YouTube Streamers Hub!';
 
   const handleCopyText = (text: string) => {
     if (text) {
@@ -67,7 +67,7 @@ export function SupportModal({ profile, isOpen, onClose }: SupportModalProps) {
         {/* Badge */}
         <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-rose-50 border border-rose-200 text-rose-700 text-xs font-bold shadow-xs">
           <Heart className="w-3.5 h-3.5 text-rose-600 fill-rose-500" />
-          <span>Support Community Streamers</span>
+          <span>Support Project & Hosting Maintenance</span>
         </div>
 
         {/* Title & Note */}
