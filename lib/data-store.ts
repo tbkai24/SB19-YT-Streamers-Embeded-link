@@ -38,14 +38,21 @@ let cachedProfiles: { data: Profile[]; timestamp: number } | null = null;
 let cachedArticles: { data: Article[]; timestamp: number } | null = null;
 const CACHE_TTL_MS = 15000; // 15 seconds
 
-export async function fetchProfilesFromSupabase(): Promise<Profile[]> {
+export function clearDataStoreCache() {
+  cachedProfiles = null;
+  cachedArticles = null;
+}
+
+export async function fetchProfilesFromSupabase(forceFresh = false): Promise<Profile[]> {
   const now = Date.now();
-  if (cachedProfiles && (now - cachedProfiles.timestamp < CACHE_TTL_MS)) {
+  if (forceFresh) {
+    clearDataStoreCache();
+  } else if (cachedProfiles && (now - cachedProfiles.timestamp < CACHE_TTL_MS)) {
     return cachedProfiles.data;
   }
 
-  // Try Edge-cached API route first for viral scale (1 query per min for 1M visitors)
-  if (typeof window !== 'undefined') {
+  // Try Edge-cached API route first for public visitors (skip if forceFresh)
+  if (!forceFresh && typeof window !== 'undefined') {
     try {
       const edgeRes = await fetch('/api/public/data');
       if (edgeRes.ok) {
@@ -109,6 +116,7 @@ export async function fetchProfilesFromSupabase(): Promise<Profile[]> {
 }
 
 export async function saveProfileToSupabase(profile: Partial<Profile>): Promise<{ success: boolean; error?: string; data?: Profile }> {
+  clearDataStoreCache();
   // Always update local storage first so local changes persist seamlessly
   if (profile.id) {
     const current = getStoredProfiles();
@@ -194,14 +202,16 @@ export function saveArticles(articles: Article[]) {
   }
 }
 
-export async function fetchArticlesFromSupabase(): Promise<Article[]> {
+export async function fetchArticlesFromSupabase(forceFresh = false): Promise<Article[]> {
   const now = Date.now();
-  if (cachedArticles && (now - cachedArticles.timestamp < CACHE_TTL_MS)) {
+  if (forceFresh) {
+    clearDataStoreCache();
+  } else if (cachedArticles && (now - cachedArticles.timestamp < CACHE_TTL_MS)) {
     return cachedArticles.data;
   }
 
-  // Try Edge-cached API route first for viral scale
-  if (typeof window !== 'undefined') {
+  // Try Edge-cached API route first for public visitors (skip if forceFresh)
+  if (!forceFresh && typeof window !== 'undefined') {
     try {
       const edgeRes = await fetch('/api/public/data');
       if (edgeRes.ok) {
@@ -248,6 +258,7 @@ export async function fetchArticlesFromSupabase(): Promise<Article[]> {
 }
 
 export async function saveArticleToSupabase(article: Partial<Article>): Promise<{ success: boolean; error?: string; data?: Article }> {
+  clearDataStoreCache();
   try {
     const supabase = createClient();
     const { data, error } = await supabase
@@ -288,6 +299,7 @@ export async function saveArticleToSupabase(article: Partial<Article>): Promise<
 }
 
 export async function deleteArticleFromSupabase(articleId: string): Promise<{ success: boolean; error?: string }> {
+  clearDataStoreCache();
   // Update local storage first
   const current = getStoredArticles();
   const filtered = current.filter(a => a.id !== articleId);
@@ -312,6 +324,7 @@ export async function deleteArticleFromSupabase(articleId: string): Promise<{ su
 }
 
 export async function deleteProfileFromSupabase(profileId: string): Promise<{ success: boolean; error?: string }> {
+  clearDataStoreCache();
   // Update local storage first
   const current = getStoredProfiles();
   const filtered = current.filter(p => p.id !== profileId);
@@ -377,6 +390,7 @@ export async function fetchSubmissionsFromSupabase(): Promise<ArticleSubmission[
 }
 
 export async function approveSubmissionInSupabase(sub: ArticleSubmission, newArt: Article) {
+  clearDataStoreCache();
   try {
     const supabase = createClient();
     await supabase.from('articles').upsert(newArt);
@@ -412,6 +426,7 @@ export async function updateSubmissionInSupabase(sub: ArticleSubmission) {
 }
 
 export async function deleteSubmissionFromSupabase(subId: string): Promise<{ success: boolean; error?: string }> {
+  clearDataStoreCache();
   // Update local storage first
   const current = getStoredSubmissions();
   const filtered = current.filter(s => s.id !== subId);

@@ -113,8 +113,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     // 2. Fetch fresh DB state asynchronously
     try {
       const [dbProfs, dbArts, dbSubs] = await Promise.all([
-        fetchProfilesFromSupabase(),
-        fetchArticlesFromSupabase(),
+        fetchProfilesFromSupabase(true),
+        fetchArticlesFromSupabase(true),
         fetchSubmissionsFromSupabase(),
       ]);
 
