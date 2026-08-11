@@ -56,22 +56,24 @@ export function SubmitModal({ profile, isOpen, onClose, onSuccess }: SubmitModal
     else if (lower.includes('threads.net')) setSelectedPlatform('threads');
   };
 
-  const checkDuplicate = (inputUrl: string): boolean => {
+  const checkDuplicate = (inputUrl: string, inputTitle?: string): boolean => {
     if (!inputUrl.trim()) return false;
     const articles = getStoredArticles();
     const submissions = getStoredSubmissions();
 
     const publishedUrls = articles.flatMap(a => [a.canonical_url, a.article_url].filter(Boolean) as string[]);
-    if (isDuplicateUrl(inputUrl, publishedUrls)) {
-      setErrorMsg('This link already exists in the directory!');
+    const publishedTitles = articles.map(a => a.title).filter(Boolean) as string[];
+    if (isDuplicateUrl(inputUrl, publishedUrls, inputTitle, publishedTitles)) {
+      setErrorMsg('This link or article title already exists in the directory!');
       return true;
     }
 
-    const pendingUrls = submissions
-      .filter(s => s.status === 'pending')
-      .flatMap(s => [s.canonical_url, s.article_url].filter(Boolean) as string[]);
-    if (isDuplicateUrl(inputUrl, pendingUrls)) {
-      setErrorMsg('This link is already submitted and pending admin review!');
+    const pendingSubs = submissions.filter(s => s.status === 'pending');
+    const pendingUrls = pendingSubs.flatMap(s => [s.canonical_url, s.article_url].filter(Boolean) as string[]);
+    const pendingTitles = pendingSubs.map(s => s.title).filter(Boolean) as string[];
+
+    if (isDuplicateUrl(inputUrl, pendingUrls, inputTitle, pendingTitles)) {
+      setErrorMsg('This link or article title is already submitted and pending admin review!');
       return true;
     }
 
@@ -111,7 +113,7 @@ export function SubmitModal({ profile, isOpen, onClose, onSuccess }: SubmitModal
     if (!url.trim()) return;
 
     // Direct duplicate check before submitting
-    if (checkDuplicate(url)) {
+    if (checkDuplicate(url, title)) {
       return;
     }
 

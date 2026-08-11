@@ -469,43 +469,47 @@ export async function submitArticleLink(
   }
 
   const targetCanonical = normalizeUrl(metadata?.canonicalUrl || normalized);
+  const inputTitle = metadata?.title;
 
   const articles = getStoredArticles();
   const submissions = getStoredSubmissions();
 
-  // 1. Local Storage Check (BOTH canonical_url AND article_url)
+  // 1. Local Storage Check (BOTH canonical_url AND article_url AND title)
   const publishedUrls = articles.flatMap(a => [a.canonical_url, a.article_url].filter(Boolean) as string[]);
-  if (isDuplicateUrl(normalized, publishedUrls) || isDuplicateUrl(targetCanonical, publishedUrls)) {
-    return { success: false, message: 'This link already exists in the directory.' };
+  const publishedTitles = articles.map(a => a.title).filter(Boolean) as string[];
+  if (isDuplicateUrl(normalized, publishedUrls, inputTitle, publishedTitles) || isDuplicateUrl(targetCanonical, publishedUrls, inputTitle, publishedTitles)) {
+    return { success: false, message: 'This link or article title already exists in the directory.' };
   }
 
-  const pendingUrls = submissions
-    .filter(s => s.status === 'pending' || s.status === 'approved')
-    .flatMap(s => [s.canonical_url, s.article_url].filter(Boolean) as string[]);
+  const pendingSubs = submissions.filter(s => s.status === 'pending' || s.status === 'approved');
+  const pendingUrls = pendingSubs.flatMap(s => [s.canonical_url, s.article_url].filter(Boolean) as string[]);
+  const pendingTitles = pendingSubs.map(s => s.title).filter(Boolean) as string[];
 
-  if (isDuplicateUrl(normalized, pendingUrls) || isDuplicateUrl(targetCanonical, pendingUrls)) {
-    return { success: false, message: 'This link has already been submitted and is pending review.' };
+  if (isDuplicateUrl(normalized, pendingUrls, inputTitle, pendingTitles) || isDuplicateUrl(targetCanonical, pendingUrls, inputTitle, pendingTitles)) {
+    return { success: false, message: 'This link or article title has already been submitted and is pending review.' };
   }
 
   // 2. Direct Supabase Database Check (Blocks duplicate submissions from different devices/browsers)
   try {
     const supabase = createClient();
     const [dbArtRes, dbSubRes] = await Promise.all([
-      supabase.from('articles').select('article_url, canonical_url'),
-      supabase.from('article_submissions').select('article_url, canonical_url').in('status', ['pending', 'approved'])
+      supabase.from('articles').select('article_url, canonical_url, title'),
+      supabase.from('article_submissions').select('article_url, canonical_url, title').in('status', ['pending', 'approved'])
     ]);
 
     if (dbArtRes.data && dbArtRes.data.length > 0) {
       const dbArtUrls = dbArtRes.data.flatMap(a => [a.canonical_url, a.article_url].filter(Boolean) as string[]);
-      if (isDuplicateUrl(normalized, dbArtUrls) || isDuplicateUrl(targetCanonical, dbArtUrls)) {
-        return { success: false, message: 'This link already exists in the directory.' };
+      const dbArtTitles = dbArtRes.data.map(a => a.title).filter(Boolean) as string[];
+      if (isDuplicateUrl(normalized, dbArtUrls, inputTitle, dbArtTitles) || isDuplicateUrl(targetCanonical, dbArtUrls, inputTitle, dbArtTitles)) {
+        return { success: false, message: 'This link or article title already exists in the directory.' };
       }
     }
 
     if (dbSubRes.data && dbSubRes.data.length > 0) {
       const dbSubUrls = dbSubRes.data.flatMap(s => [s.canonical_url, s.article_url].filter(Boolean) as string[]);
-      if (isDuplicateUrl(normalized, dbSubUrls) || isDuplicateUrl(targetCanonical, dbSubUrls)) {
-        return { success: false, message: 'This link has already been submitted by another user and is pending review.' };
+      const dbSubTitles = dbSubRes.data.map(s => s.title).filter(Boolean) as string[];
+      if (isDuplicateUrl(normalized, dbSubUrls, inputTitle, dbSubTitles) || isDuplicateUrl(targetCanonical, dbSubUrls, inputTitle, dbSubTitles)) {
+        return { success: false, message: 'This link or article title has already been submitted by another user and is pending review.' };
       }
     }
   } catch {

@@ -95,7 +95,7 @@ export function extractContentFingerprint(rawUrl?: string | null): string | null
   const clean = normalizeUrl(rawUrl).toLowerCase();
 
   // 1. YouTube Video / Shorts / Live ID
-  const ytMatch = clean.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|shorts\/|live\/))([\w-]{11})/i);
+  const ytMatch = clean.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=|shorts\/|live\/))([\w-]{11})/i);
   if (ytMatch && ytMatch[1]) return `youtube:${ytMatch[1]}`;
 
   // 2. Reddit Post ID
@@ -107,15 +107,15 @@ export function extractContentFingerprint(rawUrl?: string | null): string | null
   if (twitterMatch && twitterMatch[1]) return `twitter:${twitterMatch[1]}`;
 
   // 4. Instagram Post / Reel ID
-  const igMatch = clean.match(/(?:instagram\.com|instagr\.am)\/(?:p|reel|tv)\/([a-zA-Z0-9_-]+)/i);
+  const igMatch = clean.match(/(?:instagram\.com|instagr\.am)\/(?:p|reel|reels|tv)\/([a-zA-Z0-9_-]+)/i);
   if (igMatch && igMatch[1]) return `instagram:${igMatch[1]}`;
 
-  // 5. TikTok Video ID
-  const ttMatch = clean.match(/tiktok\.com\/@[^\/]+\/video\/(\d+)/i);
+  // 5. TikTok Video ID (supports @user/video/ID, /video/ID, /v/ID, /t/ID)
+  const ttMatch = clean.match(/tiktok\.com\/(?:@[^\/]+\/video\/|video\/|v\/|t\/)(\d+)/i);
   if (ttMatch && ttMatch[1]) return `tiktok:${ttMatch[1]}`;
 
-  // 6. Facebook Post / Story / Photo ID
-  const fbMatch = clean.match(/(?:facebook\.com|fb\.com|m\.facebook\.com)\/.*?(?:story_fbid=|posts\/|photos\/|permalink\.php\?story_fbid=)(pfbid[a-zA-Z0-9]+|\d+)/i);
+  // 6. Facebook Post / Reel / Story / Video / Photo ID
+  const fbMatch = clean.match(/(?:facebook\.com|fb\.com|m\.facebook\.com|fb\.watch)\/(?:.*?(?:story_fbid=|posts\/|photos\/|videos\/|reels\/|reel\/|watch\/\?v=|permalink\.php\?story_fbid=)|watch\/|)(pfbid[a-zA-Z0-9]+|\d+)/i);
   if (fbMatch && fbMatch[1]) return `facebook:${fbMatch[1]}`;
 
   return null;
@@ -132,14 +132,20 @@ export function extractYouTubeId(url?: string | null): string | null {
 
 /**
  * Checks if a given input URL matches a canonical/normalized URL in an existing list.
- * Compares both normalized URLs AND social platform content fingerprints (Reddit, X, YouTube, Instagram, TikTok).
+ * Compares normalized URLs, social platform content fingerprints (Reddit, X, YouTube, Instagram, TikTok, FB),
+ * AND optional article titles to catch duplicate submissions.
  */
-export function isDuplicateUrl(inputUrl: string, existingUrls: string[]): boolean {
+export function isDuplicateUrl(
+  inputUrl: string,
+  existingUrls: string[],
+  inputTitle?: string,
+  existingTitles?: string[]
+): boolean {
   if (!inputUrl) return false;
   const normalizedInput = normalizeUrl(inputUrl);
   const fingerprintInput = extractContentFingerprint(inputUrl);
 
-  return existingUrls.some(url => {
+  const urlMatched = existingUrls.some(url => {
     if (!url) return false;
     const normExisting = normalizeUrl(url);
     if (normExisting === normalizedInput) return true;
@@ -151,6 +157,23 @@ export function isDuplicateUrl(inputUrl: string, existingUrls: string[]): boolea
 
     return false;
   });
+
+  if (urlMatched) return true;
+
+  // Title Duplicate Check (if inputTitle & existingTitles provided)
+  if (inputTitle && inputTitle.trim().length > 6 && existingTitles && existingTitles.length > 0) {
+    const cleanInputTitle = inputTitle.trim().toLowerCase().replace(/[^a-z0-9]/g, '');
+    if (cleanInputTitle.length > 6) {
+      const titleMatched = existingTitles.some(t => {
+        if (!t || t.trim().length <= 6) return false;
+        const cleanExistingTitle = t.trim().toLowerCase().replace(/[^a-z0-9]/g, '');
+        return cleanExistingTitle === cleanInputTitle;
+      });
+      if (titleMatched) return true;
+    }
+  }
+
+  return false;
 }
 
 /**
