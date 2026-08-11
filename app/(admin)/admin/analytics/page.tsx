@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useAdminWorkspace } from '../layout';
 import { getStoredProfiles, saveProfiles, saveProfileToSupabase, fetchAnalyticsEventsFromSupabase, fetchDailyTrafficStatsFromSupabase, fetchArticlesFromSupabase } from '@/lib/data-store';
 import { AnalyticsEvent, DailyTrafficStat } from '@/types/database';
@@ -75,12 +75,17 @@ export default function AnalyticsAdminPage() {
   const [endDate, setEndDate] = useState('');
   const [events, setEvents] = useState<AnalyticsEvent[]>([]);
   const [dailyStats, setDailyStats] = useState<DailyTrafficStat[]>([]);
+  const prevProfileIdRef = useRef<string | null>(null);
 
   useEffect(() => {
     if (!activeProfile) return;
 
-    setEvents([]);
-    setDailyStats([]);
+    // Only clear data when switching to a DIFFERENT profile ID
+    if (prevProfileIdRef.current && prevProfileIdRef.current !== activeProfile.id) {
+      setEvents([]);
+      setDailyStats([]);
+    }
+    prevProfileIdRef.current = activeProfile.id;
 
     setSeoTitle(activeProfile.seo_title || `${activeProfile.title} - SB19 YouTube Streamers`);
     setSeoDescription(activeProfile.seo_description || activeProfile.description || '');
@@ -93,7 +98,6 @@ export default function AnalyticsAdminPage() {
       ]).then(([evs, stats]) => {
         setEvents(evs);
         setDailyStats(stats);
-        refreshData();
       });
     };
 
@@ -101,7 +105,7 @@ export default function AnalyticsAdminPage() {
     const interval = setInterval(loadLiveAnalytics, 5000);
 
     return () => clearInterval(interval);
-  }, [activeProfile?.id, refreshData]);
+  }, [activeProfile?.id]);
 
   if (!activeProfile) return null;
 
