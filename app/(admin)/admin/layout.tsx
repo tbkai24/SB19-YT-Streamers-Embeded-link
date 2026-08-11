@@ -11,6 +11,7 @@ import {
   fetchProfilesFromSupabase,
   fetchArticlesFromSupabase,
   fetchSubmissionsFromSupabase,
+  exportDataBackup,
 } from '@/lib/data-store';
 import { createClient } from '@/lib/supabase/client';
 import { ActiveProfileSwitcher } from '@/components/admin/active-profile-switcher';
@@ -28,6 +29,7 @@ import {
   ArrowLeft,
   Loader2,
   Bell,
+  Download,
 } from 'lucide-react';
 
 interface AdminWorkspaceContextType {
@@ -226,7 +228,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           </div>
 
           {/* Right Action Bar */}
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2.5">
             {activeProfile && (
               <Link
                 href={`/profile/${activeProfile.slug}`}
@@ -237,6 +239,15 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 <ExternalLink className="w-3.5 h-3.5 text-rose-600" />
               </Link>
             )}
+
+            <button
+              onClick={() => exportDataBackup()}
+              className="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 border border-slate-200 text-xs font-semibold text-slate-700 flex items-center gap-1.5 transition-colors cursor-pointer shadow-xs"
+              title="Download 1-Click JSON Backup of all profiles and articles"
+            >
+              <Download className="w-3.5 h-3.5 text-blue-600" />
+              <span className="hidden sm:inline">Download Backup</span>
+            </button>
 
             <button
               onClick={handleLogout}

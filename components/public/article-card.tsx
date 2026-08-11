@@ -5,6 +5,7 @@ import { Article } from '@/types/database';
 import { recordArticleClick } from '@/lib/data-store';
 import { decodeHtmlEntities } from '@/lib/url-normalizer';
 import { getWebsiteBadgeStyle } from '@/lib/brand-colors';
+import { getCloudinaryImageUrl } from '@/lib/cloudinary';
 import { ExternalLink, PlayCircle } from 'lucide-react';
 
 interface ArticleCardProps {
@@ -34,11 +35,12 @@ export function ArticleCard({ article, accentColor = '#e11d48', isEngagementProf
         {article.thumbnail && !imageError ? (
           <div className="relative w-full sm:w-28 h-28 sm:h-20 rounded-xl overflow-hidden bg-slate-100 shrink-0 border border-slate-200">
             <img
-              src={article.thumbnail}
+              src={getCloudinaryImageUrl(article.thumbnail, { width: 400 })}
               alt={decodeHtmlEntities(article.title)}
               onError={() => setImageError(true)}
               className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
             />
+
             <div className="absolute inset-0 bg-black/20 group-hover:bg-black/10 transition-colors flex items-center justify-center">
               <PlayCircle className="w-6 h-6 text-white drop-shadow" />
             </div>

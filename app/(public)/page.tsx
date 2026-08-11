@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Profile, Article } from '@/types/database';
 import { getStoredProfiles, getStoredArticles, fetchProfilesFromSupabase, fetchArticlesFromSupabase } from '@/lib/data-store';
+import { getCloudinaryImageUrl } from '@/lib/cloudinary';
 import { PublicFooter } from '@/components/public/footer';
 import { BrandLogo } from '@/components/public/logo';
 import { CountryBreakdownModal } from '@/components/public/country-modal';
@@ -133,7 +134,7 @@ export default function PublicHomePage() {
                       <div className="relative w-14 h-14 rounded-xl overflow-hidden bg-slate-100 shrink-0 border border-slate-200">
                         {profile.cover_image || profile.profile_image ? (
                           <img
-                            src={profile.profile_image || profile.cover_image || ''}
+                            src={getCloudinaryImageUrl(profile.profile_image || profile.cover_image || '', { width: 200 })}
                             alt={profile.title}
                             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                           />

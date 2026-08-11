@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { Profile, Article } from '@/types/database';
 import { getStoredProfiles, getStoredArticles, fetchProfilesFromSupabase, fetchArticlesFromSupabase, recordProfileView } from '@/lib/data-store';
 import { createClient } from '@/lib/supabase/client';
+import { getCloudinaryImageUrl } from '@/lib/cloudinary';
 import { extractYouTubeId, decodeHtmlEntities, isEligibleForArticleOfTheDay, translateTextToEnglish } from '@/lib/url-normalizer';
 import { SocialLinks } from '@/components/public/social-links';
 import { ArticleCard } from '@/components/public/article-card';
@@ -247,7 +248,7 @@ export default function PublicProfilePage({ params }: ProfilePageProps) {
         {profile.cover_image && (
           <div className="w-full h-36 sm:h-44 rounded-2xl overflow-hidden bg-slate-100 border border-slate-200 shadow-md mb-[-40px] relative">
             <img
-              src={profile.cover_image}
+              src={getCloudinaryImageUrl(profile.cover_image, { width: 800 })}
               alt={profile.title}
               className="w-full h-full object-cover"
             />
@@ -263,7 +264,7 @@ export default function PublicProfilePage({ params }: ProfilePageProps) {
           >
             {profile.profile_image || profile.cover_image ? (
               <img
-                src={profile.profile_image || profile.cover_image || ''}
+                src={getCloudinaryImageUrl(profile.profile_image || profile.cover_image || '', { width: 300 })}
                 alt={profile.title}
                 className="w-full h-full object-cover"
               />

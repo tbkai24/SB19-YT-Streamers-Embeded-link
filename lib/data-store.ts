@@ -33,7 +33,34 @@ export function saveProfiles(profiles: Profile[]) {
   }
 }
 
+// Short-lived in-memory cache to prevent duplicate Supabase fetches during rapid navigation
+let cachedProfiles: { data: Profile[]; timestamp: number } | null = null;
+let cachedArticles: { data: Article[]; timestamp: number } | null = null;
+const CACHE_TTL_MS = 15000; // 15 seconds
+
 export async function fetchProfilesFromSupabase(): Promise<Profile[]> {
+  const now = Date.now();
+  if (cachedProfiles && (now - cachedProfiles.timestamp < CACHE_TTL_MS)) {
+    return cachedProfiles.data;
+  }
+
+  // Try Edge-cached API route first for viral scale (1 query per min for 1M visitors)
+  if (typeof window !== 'undefined') {
+    try {
+      const edgeRes = await fetch('/api/public/data');
+      if (edgeRes.ok) {
+        const edgeJson = await edgeRes.json();
+        if (edgeJson.profiles && edgeJson.profiles.length > 0) {
+          saveProfiles(edgeJson.profiles);
+          cachedProfiles = { data: edgeJson.profiles, timestamp: now };
+          return edgeJson.profiles;
+        }
+      }
+    } catch {
+      // Fallback to direct Supabase
+    }
+  }
+
   try {
     const supabase = createClient();
     let queryPromise = supabase
@@ -72,6 +99,7 @@ export async function fetchProfilesFromSupabase(): Promise<Profile[]> {
         };
       }).sort((a: Profile, b: Profile) => (a.display_order ?? 999) - (b.display_order ?? 999));
       saveProfiles(merged);
+      cachedProfiles = { data: merged, timestamp: now };
       return merged;
     }
   } catch {
@@ -167,6 +195,28 @@ export function saveArticles(articles: Article[]) {
 }
 
 export async function fetchArticlesFromSupabase(): Promise<Article[]> {
+  const now = Date.now();
+  if (cachedArticles && (now - cachedArticles.timestamp < CACHE_TTL_MS)) {
+    return cachedArticles.data;
+  }
+
+  // Try Edge-cached API route first for viral scale
+  if (typeof window !== 'undefined') {
+    try {
+      const edgeRes = await fetch('/api/public/data');
+      if (edgeRes.ok) {
+        const edgeJson = await edgeRes.json();
+        if (edgeJson.articles && edgeJson.articles.length > 0) {
+          saveArticles(edgeJson.articles);
+          cachedArticles = { data: edgeJson.articles, timestamp: now };
+          return edgeJson.articles;
+        }
+      }
+    } catch {
+      // Fallback to direct Supabase
+    }
+  }
+
   try {
     const supabase = createClient();
     let queryPromise = supabase
@@ -188,6 +238,7 @@ export async function fetchArticlesFromSupabase(): Promise<Article[]> {
 
     if (!error && data) {
       saveArticles(data as Article[]);
+      cachedArticles = { data: data as Article[], timestamp: now };
       return data as Article[];
     }
   } catch {
@@ -489,7 +540,8 @@ export async function fetchAnalyticsEventsFromSupabase(profileId: string): Promi
       .from('analytics_events')
       .select('*')
       .eq('profile_id', profileId)
-      .order('created_at', { ascending: false });
+      .order('created_at', { ascending: false })
+      .limit(300);
 
     if (!error && data) {
       saveAnalyticsEvents(data as AnalyticsEvent[]);
@@ -528,7 +580,8 @@ export async function fetchDailyTrafficStatsFromSupabase(profileId: string): Pro
       .from('daily_traffic_stats')
       .select('*')
       .eq('profile_id', profileId)
-      .order('date', { ascending: false });
+      .order('date', { ascending: false })
+      .limit(90);
 
     if (!error && data) {
       saveDailyTrafficStats(data as DailyTrafficStat[]);
@@ -560,6 +613,15 @@ export async function recordProfileView(profileId: string) {
   const host = window.location.hostname;
   if (host === 'localhost' || host === '127.0.0.1' || host === '::1') return;
 
+  const todayStr = new Date().toISOString().split('T')[0];
+
+  // Session-level view deduplication to save DB writes and Egress
+  if (typeof sessionStorage !== 'undefined') {
+    const sessionKey = `pv_${profileId}_${todayStr}`;
+    if (sessionStorage.getItem(sessionKey)) return;
+    sessionStorage.setItem(sessionKey, '1');
+  }
+
   const device = detectDeviceType();
   const country = await detectCountryCode();
   const visitorHash = await getClientIp();
@@ -567,8 +629,6 @@ export async function recordProfileView(profileId: string) {
   const profiles = getStoredProfiles();
   const idx = profiles.findIndex(p => p.id === profileId);
 
-
-  const todayStr = new Date().toISOString().split('T')[0];
   const nowIso = new Date().toISOString();
   const newEvent: AnalyticsEvent = {
     id: generateUUID(),
@@ -696,3 +756,21 @@ export async function fetchNotificationsFromSupabase(): Promise<NotificationItem
   }
   return getStoredNotifications();
 }
+
+export function exportDataBackup() {
+  if (typeof window === 'undefined') return;
+  const backup = {
+    profiles: getStoredProfiles(),
+    articles: getStoredArticles(),
+    submissions: getStoredSubmissions(),
+    analytics: getStoredAnalyticsEvents(),
+    dailyTraffic: getStoredDailyTrafficStats(),
+    exported_at: new Date().toISOString()
+  };
+  const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `sb19_hub_backup_${new Date().toISOString().split('T')[0]}.json`;
+  a.click();
+}
+
