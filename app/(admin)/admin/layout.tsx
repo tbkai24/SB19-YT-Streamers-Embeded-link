@@ -30,6 +30,7 @@ import {
   Loader2,
   Bell,
   Download,
+  Heart,
 } from 'lucide-react';
 
 interface AdminWorkspaceContextType {
@@ -80,103 +81,80 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
       try {
         const supabase = createClient();
-        const timeoutPromise = new Promise((resolve) => setTimeout(() => resolve(null), 1500));
-        const sessionPromise = supabase.auth.getSession();
-        const result: any = await Promise.race([sessionPromise, timeoutPromise]);
-
-        if (result?.data?.session) {
+        const { data } = await supabase.auth.getSession();
+        if (data.session) {
           setIsAuthenticated(true);
           loadAllData();
         } else {
-          setIsAuthenticated(false);
           router.replace('/admin/login');
         }
       } catch {
-        setIsAuthenticated(false);
         router.replace('/admin/login');
       }
     };
 
     checkAuthStatus();
-  }, [pathname]);
+  }, [pathname, router]);
 
   const loadAllData = async () => {
-    // 1. Instant local load
-    const profs = getStoredProfiles();
-    const arts = getStoredArticles();
-    const subs = getStoredSubmissions();
+    // 1. Initial local load
+    const storedProfiles = getStoredProfiles();
+    const storedArticles = getStoredArticles();
+    const storedSubmissions = getStoredSubmissions();
 
-    setProfiles(profs);
-    setArticles(arts);
-    setSubmissions(subs);
+    setProfiles(storedProfiles);
+    setArticles(storedArticles);
+    setSubmissions(storedSubmissions);
 
-    if (profs.length > 0) {
-      if (!activeProfile || !profs.some(p => p.id === activeProfile.id)) {
-        setActiveProfile(profs[0]);
-      } else {
-        const updatedActive = profs.find(p => p.id === activeProfile.id);
-        if (updatedActive) setActiveProfile(updatedActive);
-      }
+    if (storedProfiles.length > 0 && !activeProfile) {
+      setActiveProfile(storedProfiles[0]);
     }
 
-    // 2. Sync fresh data from Supabase DB
+    // 2. Fetch fresh DB state asynchronously
     try {
-      const dbProfs = await fetchProfilesFromSupabase();
-      const dbArts = await fetchArticlesFromSupabase();
-      const dbSubs = await fetchSubmissionsFromSupabase();
-
-      setProfiles(dbProfs);
-      setArticles(dbArts);
-      setSubmissions(dbSubs);
+      const [dbProfs, dbArts, dbSubs] = await Promise.all([
+        fetchProfilesFromSupabase(),
+        fetchArticlesFromSupabase(),
+        fetchSubmissionsFromSupabase(),
+      ]);
 
       if (dbProfs.length > 0) {
-        setActiveProfile(prev => {
-          if (!prev || !dbProfs.some(p => p.id === prev.id)) {
-            return dbProfs[0];
-          }
-          return dbProfs.find(p => p.id === prev.id) || prev;
-        });
+        setProfiles(dbProfs);
+        // Retain or select active profile
+        const activeExist = dbProfs.find(p => p.id === activeProfile?.id);
+        setActiveProfile(activeExist || dbProfs[0]);
       }
-    } catch (e) {
-      console.error('Supabase workspace load error:', e);
+      if (dbArts.length > 0) setArticles(dbArts);
+      if (dbSubs.length > 0) setSubmissions(dbSubs);
+    } catch {
+      // Keep local
     }
   };
 
   const handleLogout = async () => {
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('sb19_admin_session');
+    }
     try {
       const supabase = createClient();
       await supabase.auth.signOut();
-    } catch (e) {
-      console.error('Supabase signout error:', e);
+    } catch {
+      // Ignore
     }
-    if (typeof window !== 'undefined') {
-      localStorage.removeItem('sb19_admin_session');
-      localStorage.removeItem('sb19_admin_login_time');
-    }
-    router.push('/admin/login');
+    router.replace('/admin/login');
   };
 
-  // If on login page, render children directly
-  if (pathname === '/admin/login') {
-    return <>{children}</>;
-  }
-
-  // Loading state while checking auth
-  if (isAuthenticated === null || isAuthenticated === false) {
+  if (isAuthenticated === null) {
     return (
-      <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col items-center justify-center p-4">
-        <Loader2 className="w-8 h-8 text-rose-600 animate-spin mb-2" />
-        <span className="text-xs text-slate-600 font-medium">Verifying admin access...</span>
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+        <Loader2 className="w-8 h-8 text-rose-600 animate-spin" />
       </div>
     );
   }
 
-  const pendingCount = activeProfile
-    ? submissions.filter(s => s.profile_id === activeProfile.id && s.status === 'pending').length
-    : 0;
-
+  const pendingCount = submissions.filter(s => s.status === 'pending').length;
   const articleCount = activeProfile
-    ? articles.filter(a => a.profile_id === activeProfile.id && a.status === 'published').length
+    ? articles.filter(a => a.profile_id === activeProfile.id).length
     : 0;
 
   const navItems = [
@@ -185,6 +163,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     { label: 'Submissions', href: '/admin/submissions', icon: Clock, badge: pendingCount, highlight: pendingCount > 0 },
     { label: 'Push Notifications', href: '/admin/notifications', icon: Bell },
     { label: 'Appearance', href: '/admin/appearance', icon: Palette },
+    { label: 'Support & Donation QR', href: '/admin/support', icon: Heart },
     { label: 'Official Social Links', href: '/admin/social', icon: Share2 },
     { label: 'SEO & Analytics', href: '/admin/analytics', icon: BarChart3 },
   ];

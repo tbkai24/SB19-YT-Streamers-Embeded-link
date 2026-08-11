@@ -10,11 +10,12 @@ import { extractYouTubeId, decodeHtmlEntities, isEligibleForArticleOfTheDay, tra
 import { SocialLinks } from '@/components/public/social-links';
 import { ArticleCard } from '@/components/public/article-card';
 import { SubmitModal } from '@/components/public/submit-modal';
+import { SupportModal } from '@/components/public/support-modal';
 import { CountryBreakdownModal } from '@/components/public/country-modal';
 import { PublicFooter } from '@/components/public/footer';
 import { BrandLogo } from '@/components/public/logo';
 import { getCountryFlagEmoji } from '@/lib/device-detector';
-import { ArrowLeft, PlusCircle, Radio, Video, Sparkles, ExternalLink, Globe } from 'lucide-react';
+import { ArrowLeft, PlusCircle, Radio, Video, Sparkles, ExternalLink, Globe, Heart } from 'lucide-react';
 
 interface ProfilePageProps {
   params: Promise<{ slug: string }>;
@@ -119,6 +120,7 @@ export default function PublicProfilePage({ params }: ProfilePageProps) {
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitOpen, setIsSubmitOpen] = useState(false);
   const [isCountryModalOpen, setIsCountryModalOpen] = useState(false);
+  const [isSupportOpen, setIsSupportOpen] = useState(false);
   const viewRecordedRef = useRef<string | null>(null);
 
   const loadData = async () => {
@@ -287,6 +289,15 @@ export default function PublicProfilePage({ params }: ProfilePageProps) {
 
           {/* Social Icons */}
           <SocialLinks profile={profile} />
+
+          {/* Support Streamers Button */}
+          <button
+            onClick={() => setIsSupportOpen(true)}
+            className="mt-3 inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-700 hover:text-rose-800 text-xs font-bold transition-all shadow-xs active:scale-95 cursor-pointer"
+          >
+            <Heart className="w-3.5 h-3.5 text-rose-600 fill-rose-500" />
+            <span>Support Streamers (Donation / QR)</span>
+          </button>
         </div>
 
         {/* Featured Official MV Video Player */}
@@ -434,6 +445,13 @@ export default function PublicProfilePage({ params }: ProfilePageProps) {
         onClose={() => setIsCountryModalOpen(false)}
         countryBreakdown={profile.country_breakdown}
         profileTitle={profile.title}
+      />
+
+      {/* Support / Donation QR Modal */}
+      <SupportModal
+        profile={profile}
+        isOpen={isSupportOpen}
+        onClose={() => setIsSupportOpen(false)}
       />
     </div>
   );

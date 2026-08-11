@@ -5,7 +5,7 @@ import { useAdminWorkspace } from '../layout';
 import { getStoredProfiles, saveProfiles, saveProfileToSupabase } from '@/lib/data-store';
 import { ImageUploadInput } from '@/components/admin/image-upload-input';
 import { extractYouTubeId } from '@/lib/url-normalizer';
-import { Palette, Check, Save, Video, PlayCircle } from 'lucide-react';
+import { Palette, Check, Save, Video, PlayCircle, Heart, QrCode } from 'lucide-react';
 
 export default function AppearanceAdminPage() {
   const { activeProfile, refreshData } = useAdminWorkspace();
@@ -18,6 +18,9 @@ export default function AppearanceAdminPage() {
   const [accentColor, setAccentColor] = useState('#e11d48');
   const [profileType, setProfileType] = useState<'embed' | 'engagement'>('embed');
   const [featuredVideoUrl, setFeaturedVideoUrl] = useState('');
+  const [supportQrImage, setSupportQrImage] = useState('');
+  const [supportTitle, setSupportTitle] = useState('');
+  const [supportNote, setSupportNote] = useState('');
   const [savedSuccess, setSavedSuccess] = useState(false);
   const [error, setError] = useState('');
 
@@ -31,6 +34,9 @@ export default function AppearanceAdminPage() {
       setAccentColor(activeProfile.accent_color || '#e11d48');
       setProfileType(activeProfile.profile_type || 'embed');
       setFeaturedVideoUrl(activeProfile.featured_video_url || activeProfile.youtube_url || '');
+      setSupportQrImage(activeProfile.support_qr_image || '');
+      setSupportTitle(activeProfile.support_title || '');
+      setSupportNote(activeProfile.support_note || '');
       setError('');
     }
   }, [activeProfile]);
@@ -64,6 +70,9 @@ export default function AppearanceAdminPage() {
       accent_color: accentColor,
       profile_type: profileType,
       featured_video_url: featuredVideoUrl.trim() || null,
+      support_qr_image: supportQrImage.trim() || null,
+      support_title: supportTitle.trim() || null,
+      support_note: supportNote.trim() || null,
       youtube_url: activeProfile.youtube_url || null,
       updated_at: new Date().toISOString(),
     };
@@ -243,6 +252,48 @@ export default function AppearanceAdminPage() {
               </div>
             </div>
           )}
+        </div>
+
+        {/* Support / Donation QR Code Section */}
+        <div className="p-4 bg-rose-50/60 rounded-2xl border border-rose-200/80 space-y-3">
+          <label className="block text-xs font-bold text-rose-900 uppercase flex items-center gap-1.5">
+            <Heart className="w-4 h-4 text-rose-600 fill-rose-500" />
+            <span>Support / Donation QR Code (GCash, Maya, Ko-fi, PayPal)</span>
+          </label>
+          <p className="text-[11px] text-slate-600 font-medium leading-relaxed">
+            Upload your GCash/Maya QR code picture or paste an image link. A &quot;💖 Support Streamers&quot; button will appear on your public profile page for fans to donate!
+          </p>
+
+          <ImageUploadInput
+            label="Support QR Code Image"
+            value={supportQrImage}
+            onChange={setSupportQrImage}
+            folder="SB19/qr_codes"
+            placeholder="https://... or upload QR picture"
+          />
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+            <div>
+              <label className="block text-[11px] font-bold text-slate-700 uppercase mb-1">Support Title</label>
+              <input
+                type="text"
+                value={supportTitle}
+                onChange={(e) => setSupportTitle(e.target.value)}
+                placeholder="Support SB19 Streamers Hub"
+                className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-slate-900 text-xs font-medium focus:outline-none focus:border-rose-500"
+              />
+            </div>
+            <div>
+              <label className="block text-[11px] font-bold text-slate-700 uppercase mb-1">Support Note / Instructions</label>
+              <input
+                type="text"
+                value={supportNote}
+                onChange={(e) => setSupportNote(e.target.value)}
+                placeholder="Scan QR to donate via GCash / Maya to help fund streaming costs!"
+                className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-slate-900 text-xs font-medium focus:outline-none focus:border-rose-500"
+              />
+            </div>
+          </div>
         </div>
 
         <div>

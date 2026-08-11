@@ -3,6 +3,15 @@ export type ArticleStatus = 'published' | 'draft' | 'archived';
 export type SubmissionStatus = 'pending' | 'approved' | 'rejected' | 'duplicate' | 'archived';
 export type AnalyticsEventType = 'profile_view' | 'article_click' | 'submit_attempt';
 
+export interface SupportQrOption {
+  id: string;
+  platform: string; // e.g. "GCash", "Maya", "PayPal", "Ko-fi", "GoTyme", "Bank"
+  qr_image?: string | null;
+  account_name?: string | null;
+  account_number?: string | null;
+  note?: string | null;
+}
+
 export interface Profile {
   id: string;
   title: string;
@@ -20,6 +29,10 @@ export interface Profile {
   x_url: string | null;
   threads_url: string | null;
   custom_social_links?: Array<{ platform: string; url: string }> | null;
+  support_qr_image?: string | null;
+  support_title?: string | null;
+  support_note?: string | null;
+  support_qr_options?: SupportQrOption[] | null;
   seo_title: string | null;
   seo_description: string | null;
   status: ProfileStatus;
