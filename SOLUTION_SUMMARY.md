@@ -132,6 +132,10 @@ Individual article click counts scaled independently using `Math.round()` produc
    - `fetchArticlesFromSupabase()` clears stale local storage browser cache on load.
 3. **Live Debug API Endpoint (`app/api/admin/debug-analytics/route.ts`)**:
    Provides `http://localhost:3000/api/admin/debug-analytics` returning raw, untouched JSON metrics directly from Supabase for instant database validation.
+4. **Zero-Flickering State Reset Isolation (`prevProfileIdRef`)**:
+   Background polling intervals (every 5s) must NOT call `setEvents([])` or `setDailyStats([])`. State resets are strictly isolated using `useRef(prevProfileId)` to execute ONLY when switching to a different Profile ID.
+5. **Local Storage Key Versioning (`v7`)**:
+   Bumped client storage keys in `lib/data-store.ts` to `_v7` for automatic client-side cache eviction across all browser tabs.
 
 ---
 
