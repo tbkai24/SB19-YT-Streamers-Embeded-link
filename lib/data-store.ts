@@ -3,12 +3,12 @@ import { createClient } from '@/lib/supabase/client';
 import { normalizeUrl, isDuplicateUrl } from './url-normalizer';
 import { detectDeviceType, detectCountryCode, normalizeReferrer, getClientIp } from './device-detector';
 
-const LOCAL_STORAGE_KEY_PROFILES = 'sb19_hub_profiles_v6';
-const LOCAL_STORAGE_KEY_ARTICLES = 'sb19_hub_articles_v6';
-const LOCAL_STORAGE_KEY_SUBMISSIONS = 'sb19_hub_submissions_v6';
-const LOCAL_STORAGE_KEY_ANALYTICS = 'sb19_hub_analytics_events_v6';
-const LOCAL_STORAGE_KEY_DAILY_TRAFFIC = 'sb19_hub_daily_traffic_v6';
-const LOCAL_STORAGE_KEY_NOTIFICATIONS = 'sb19_hub_notifications_v6';
+const LOCAL_STORAGE_KEY_PROFILES = 'sb19_hub_profiles_v7';
+const LOCAL_STORAGE_KEY_ARTICLES = 'sb19_hub_articles_v7';
+const LOCAL_STORAGE_KEY_SUBMISSIONS = 'sb19_hub_submissions_v7';
+const LOCAL_STORAGE_KEY_ANALYTICS = 'sb19_hub_analytics_events_v7';
+const LOCAL_STORAGE_KEY_DAILY_TRAFFIC = 'sb19_hub_daily_traffic_v7';
+const LOCAL_STORAGE_KEY_NOTIFICATIONS = 'sb19_hub_notifications_v7';
 
 // 1. PROFILES
 export function getStoredProfiles(): Profile[] {

@@ -79,6 +79,9 @@ export default function AnalyticsAdminPage() {
   useEffect(() => {
     if (!activeProfile) return;
 
+    setEvents([]);
+    setDailyStats([]);
+
     setSeoTitle(activeProfile.seo_title || `${activeProfile.title} - SB19 YouTube Streamers`);
     setSeoDescription(activeProfile.seo_description || activeProfile.description || '');
 
@@ -98,7 +101,7 @@ export default function AnalyticsAdminPage() {
     const interval = setInterval(loadLiveAnalytics, 5000);
 
     return () => clearInterval(interval);
-  }, [activeProfile, refreshData]);
+  }, [activeProfile?.id, refreshData]);
 
   if (!activeProfile) return null;
 
@@ -271,7 +274,7 @@ export default function AnalyticsAdminPage() {
 
   const clickEventsInRange = filteredEvents.filter(e => e.event_type === 'article_click');
 
-  const isFullHistoryIncluded = filteredDailyStats.length >= dailyStats.length && dailyStats.length > 0;
+  const isFullHistoryIncluded = timeRange !== '1d' && filteredDailyStats.length >= dailyStats.length && dailyStats.length > 0;
 
   let displayViews = (timeRange === 'all' || isFullHistoryIncluded) ? Math.max(totalViews, totalViewsSum) : totalViewsSum;
   let displayClicks = (timeRange === 'all' || isFullHistoryIncluded)
