@@ -110,6 +110,11 @@ export function SubmitModal({ profile, isOpen, onClose, onSuccess }: SubmitModal
     e.preventDefault();
     if (!url.trim()) return;
 
+    // Direct duplicate check before submitting
+    if (checkDuplicate(url)) {
+      return;
+    }
+
     if (!turnstileToken) {
       setErrorMsg('Please complete the bot security verification check.');
       return;
@@ -150,7 +155,7 @@ export function SubmitModal({ profile, isOpen, onClose, onSuccess }: SubmitModal
       websiteName: isEngagement ? platformName : (metadata?.websiteName || 'Web Article'),
     };
 
-    const result = submitArticleLink(profile.id, url, notes, mergedMetadata as Partial<ExtractedMetadata>);
+    const result = await submitArticleLink(profile.id, url, notes, mergedMetadata as Partial<ExtractedMetadata>);
 
     setSubmitting(false);
     if (!result.success) {

@@ -457,31 +457,59 @@ export function generateUUID(): string {
   });
 }
 
-export function submitArticleLink(
+export async function submitArticleLink(
   profileId: string,
   rawUrl: string,
   notes?: string,
   metadata?: Partial<ExtractedMetadata>
-): { success: boolean; message: string; submission?: ArticleSubmission } {
+): Promise<{ success: boolean; message: string; submission?: ArticleSubmission }> {
   const normalized = normalizeUrl(rawUrl);
   if (!normalized) {
     return { success: false, message: 'Invalid URL provided.' };
   }
 
+  const targetCanonical = normalizeUrl(metadata?.canonicalUrl || normalized);
+
   const articles = getStoredArticles();
   const submissions = getStoredSubmissions();
 
-  const publishedUrls = articles.map(a => a.canonical_url || a.article_url);
-  if (isDuplicateUrl(normalized, publishedUrls)) {
-    return { success: false, message: 'This article already exists.' };
+  // 1. Local Storage Check (BOTH canonical_url AND article_url)
+  const publishedUrls = articles.flatMap(a => [a.canonical_url, a.article_url].filter(Boolean) as string[]);
+  if (isDuplicateUrl(normalized, publishedUrls) || isDuplicateUrl(targetCanonical, publishedUrls)) {
+    return { success: false, message: 'This link already exists in the directory.' };
   }
 
   const pendingUrls = submissions
-    .filter(s => s.status === 'pending')
-    .map(s => s.canonical_url || s.article_url);
+    .filter(s => s.status === 'pending' || s.status === 'approved')
+    .flatMap(s => [s.canonical_url, s.article_url].filter(Boolean) as string[]);
 
-  if (isDuplicateUrl(normalized, pendingUrls)) {
-    return { success: false, message: 'This article already exists or is already pending review.' };
+  if (isDuplicateUrl(normalized, pendingUrls) || isDuplicateUrl(targetCanonical, pendingUrls)) {
+    return { success: false, message: 'This link has already been submitted and is pending review.' };
+  }
+
+  // 2. Direct Supabase Database Check (Blocks duplicate submissions from different devices/browsers)
+  try {
+    const supabase = createClient();
+    const [dbArtRes, dbSubRes] = await Promise.all([
+      supabase.from('articles').select('article_url, canonical_url'),
+      supabase.from('article_submissions').select('article_url, canonical_url').in('status', ['pending', 'approved'])
+    ]);
+
+    if (dbArtRes.data && dbArtRes.data.length > 0) {
+      const dbArtUrls = dbArtRes.data.flatMap(a => [a.canonical_url, a.article_url].filter(Boolean) as string[]);
+      if (isDuplicateUrl(normalized, dbArtUrls) || isDuplicateUrl(targetCanonical, dbArtUrls)) {
+        return { success: false, message: 'This link already exists in the directory.' };
+      }
+    }
+
+    if (dbSubRes.data && dbSubRes.data.length > 0) {
+      const dbSubUrls = dbSubRes.data.flatMap(s => [s.canonical_url, s.article_url].filter(Boolean) as string[]);
+      if (isDuplicateUrl(normalized, dbSubUrls) || isDuplicateUrl(targetCanonical, dbSubUrls)) {
+        return { success: false, message: 'This link has already been submitted by another user and is pending review.' };
+      }
+    }
+  } catch {
+    // Ignore DB fetch failure, fallback to local check
   }
 
   const newSubmission: ArticleSubmission = {
@@ -506,10 +534,10 @@ export function submitArticleLink(
   const updated = [newSubmission, ...submissions];
   saveSubmissions(updated);
 
-  // Sync to Supabase in background
+  // Sync to Supabase DB
   try {
     const supabase = createClient();
-    supabase.from('article_submissions').insert(newSubmission).then();
+    await supabase.from('article_submissions').insert(newSubmission);
   } catch {
     // Ignore
   }

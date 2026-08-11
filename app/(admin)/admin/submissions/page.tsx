@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { useAdminWorkspace } from '../layout';
 import { ArticleSubmission, Article } from '@/types/database';
 import { getStoredSubmissions, saveSubmissions, getStoredArticles, saveArticles, generateUUID, approveSubmissionInSupabase, updateSubmissionStatusInSupabase, deleteSubmissionFromSupabase } from '@/lib/data-store';
+import { isDuplicateUrl } from '@/lib/url-normalizer';
 import { RejectSubmissionModal } from '@/components/admin/reject-submission-modal';
 import { EditSubmissionModal } from '@/components/admin/edit-submission-modal';
 import { DeleteConfirmModal } from '@/components/admin/delete-confirm-modal';
@@ -30,6 +31,15 @@ export default function SubmissionsAdminPage() {
   const handleApprove = async (sub: ArticleSubmission) => {
     setProcessingId(sub.id);
     const allArticles = getStoredArticles();
+
+    // Check if URL is already published
+    const publishedUrls = allArticles.flatMap(a => [a.canonical_url, a.article_url].filter(Boolean) as string[]);
+    if (isDuplicateUrl(sub.canonical_url || sub.article_url, publishedUrls)) {
+      await handleMarkDuplicate(sub.id);
+      showToast('Notice: This link is already published! Submission auto-marked as duplicate.', 'info');
+      return;
+    }
+
     const newArt: Article = {
       id: generateUUID(),
       profile_id: activeProfile.id,
@@ -48,7 +58,18 @@ export default function SubmissionsAdminPage() {
     // 1. Update local storage
     saveArticles([newArt, ...allArticles]);
     const allSubs = getStoredSubmissions();
-    const updatedSubs = allSubs.map(s => s.id === sub.id ? { ...s, status: 'approved' as const, reviewed_at: new Date().toISOString() } : s);
+
+    // Auto-mark any twin pending submissions as duplicate
+    const targetUrls = [sub.canonical_url, sub.article_url].filter(Boolean) as string[];
+    const updatedSubs = allSubs.map(s => {
+      if (s.id === sub.id) {
+        return { ...s, status: 'approved' as const, reviewed_at: new Date().toISOString() };
+      }
+      if (s.status === 'pending' && isDuplicateUrl(s.canonical_url || s.article_url, targetUrls)) {
+        return { ...s, status: 'duplicate' as const, notes: 'Auto-marked duplicate upon approving twin submission', reviewed_at: new Date().toISOString() };
+      }
+      return s;
+    });
     saveSubmissions(updatedSubs);
 
     // 2. Persist to Supabase database
