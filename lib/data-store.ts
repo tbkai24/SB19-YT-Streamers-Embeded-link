@@ -325,6 +325,34 @@ export async function updateArticleStatusInSupabase(articleId: string, status: A
   }
 }
 
+export async function updateArticlesOrderInSupabase(updates: { id: string; display_order: number }[]): Promise<{ success: boolean; error?: string }> {
+  clearDataStoreCache();
+
+  // Update local storage first
+  const current = getStoredArticles();
+  const updatedLocal = current.map(art => {
+    const match = updates.find(u => u.id === art.id);
+    return match ? { ...art, display_order: match.display_order, updated_at: new Date().toISOString() } : art;
+  });
+  saveArticles(updatedLocal);
+
+  try {
+    const supabase = createClient();
+    await Promise.all(
+      updates.map(u =>
+        supabase
+          .from('articles')
+          .update({ display_order: u.display_order, updated_at: new Date().toISOString() })
+          .eq('id', u.id)
+      )
+    );
+    return { success: true };
+  } catch (err: any) {
+    console.warn('Supabase updateArticlesOrder notice:', err?.message || err);
+    return { success: false, error: err?.message };
+  }
+}
+
 export async function deleteArticleFromSupabase(articleId: string): Promise<{ success: boolean; error?: string }> {
   clearDataStoreCache();
   // Update local storage first

@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { useAdminWorkspace } from '../layout';
 import { Article, ExtractedMetadata } from '@/types/database';
-import { getStoredArticles, saveArticles, saveArticleToSupabase, updateArticleStatusInSupabase, deleteArticleFromSupabase, generateUUID } from '@/lib/data-store';
+import { getStoredArticles, saveArticles, saveArticleToSupabase, updateArticleStatusInSupabase, updateArticlesOrderInSupabase, deleteArticleFromSupabase, generateUUID } from '@/lib/data-store';
 import { normalizeUrl, decodeHtmlEntities, isEligibleForArticleOfTheDay, translateTextToEnglish } from '@/lib/url-normalizer';
 import { ImageUploadInput } from '@/components/admin/image-upload-input';
 import { DeleteConfirmModal } from '@/components/admin/delete-confirm-modal';
@@ -318,25 +318,35 @@ export default function ArticlesAdminPage() {
     setPermDeleteTarget(null);
   };
 
-  const handleMoveOrder = (artId: string, direction: 'up' | 'down') => {
-    const sorted = [...activeArticles];
-    const index = sorted.findIndex(a => a.id === artId);
+  const handleMoveOrder = async (artId: string, direction: 'up' | 'down') => {
+    const currentList = [...activeArticles];
+    const index = currentList.findIndex(a => a.id === artId);
     if (index === -1) return;
 
     const targetIndex = direction === 'up' ? index - 1 : index + 1;
-    if (targetIndex < 0 || targetIndex >= sorted.length) return;
+    if (targetIndex < 0 || targetIndex >= currentList.length) return;
 
-    const tempOrder = sorted[index].display_order;
-    sorted[index].display_order = sorted[targetIndex].display_order;
-    sorted[targetIndex].display_order = tempOrder;
+    // Swap elements in array
+    const temp = currentList[index];
+    currentList[index] = currentList[targetIndex];
+    currentList[targetIndex] = temp;
 
+    // Re-assign explicit order 1, 2, 3...
+    const updates = currentList.map((art, idx) => ({
+      id: art.id,
+      display_order: idx + 1,
+    }));
+
+    // Update local storage immediately for zero-lag UI reaction
     const allArticles = getStoredArticles();
-    const updated = allArticles.map(a => {
-      const match = sorted.find(s => s.id === a.id);
-      return match ? match : a;
+    const updatedLocal = allArticles.map(a => {
+      const match = updates.find(u => u.id === a.id);
+      return match ? { ...a, display_order: match.display_order } : a;
     });
+    saveArticles(updatedLocal);
 
-    saveArticles(updated);
+    // Sync order to Supabase DB asynchronously
+    await updateArticlesOrderInSupabase(updates);
     refreshData();
   };
 
@@ -350,25 +360,20 @@ export default function ArticlesAdminPage() {
       [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
     }
 
-    // Re-assign display_order (1, 2, 3...)
-    shuffled.forEach((art, idx) => {
-      art.display_order = idx + 1;
-      art.updated_at = new Date().toISOString();
-    });
+    const updates = shuffled.map((art, idx) => ({
+      id: art.id,
+      display_order: idx + 1,
+    }));
 
+    // Update local storage immediately
     const allArticles = getStoredArticles();
-    const updated = allArticles.map(a => {
-      const match = shuffled.find(s => s.id === a.id);
-      return match ? match : a;
+    const updatedLocal = allArticles.map(a => {
+      const match = updates.find(u => u.id === a.id);
+      return match ? { ...a, display_order: match.display_order } : a;
     });
+    saveArticles(updatedLocal);
 
-    saveArticles(updated);
-
-    // Sync all updated display_order values to Supabase
-    for (const art of shuffled) {
-      await saveArticleToSupabase(art);
-    }
-
+    await updateArticlesOrderInSupabase(updates);
     refreshData();
     showToast(`Reshuffled ${shuffled.length} articles order randomly!`, 'success');
   };
