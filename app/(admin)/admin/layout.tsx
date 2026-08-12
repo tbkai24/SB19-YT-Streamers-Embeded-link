@@ -152,7 +152,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     );
   }
 
-  const pendingCount = submissions.filter(s => s.status === 'pending').length;
+  const pendingCount = activeProfile
+    ? submissions.filter(s => s.profile_id === activeProfile.id && s.status === 'pending').length
+    : 0;
   const articleCount = activeProfile
     ? articles.filter(a => a.profile_id === activeProfile.id).length
     : 0;

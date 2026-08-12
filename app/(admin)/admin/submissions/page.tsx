@@ -11,8 +11,9 @@ import { DeleteConfirmModal } from '@/components/admin/delete-confirm-modal';
 import { Check, X, ExternalLink, Clock, MessageSquare, Copy, Edit2, CheckCircle2, AlertCircle, Loader2, Trash2 } from 'lucide-react';
 
 export default function SubmissionsAdminPage() {
-  const { activeProfile, submissions, refreshData } = useAdminWorkspace();
+  const { activeProfile, profiles, submissions, refreshData } = useAdminWorkspace();
 
+  const [scopeFilter, setScopeFilter] = useState<'active' | 'all'>('active');
   const [rejectModalSub, setRejectModalSub] = useState<ArticleSubmission | null>(null);
   const [editModalSub, setEditModalSub] = useState<ArticleSubmission | null>(null);
   const [permDeleteSubTarget, setPermDeleteSubTarget] = useState<ArticleSubmission | null>(null);
@@ -26,7 +27,11 @@ export default function SubmissionsAdminPage() {
     setTimeout(() => setToast(null), 4000);
   };
 
-  const profileSubmissions = submissions.filter(s => s.profile_id === activeProfile.id && s.status === 'pending');
+  const pendingSubmissions = submissions.filter(s => s.status === 'pending');
+  const activeProfileSubmissions = pendingSubmissions.filter(s => s.profile_id === activeProfile.id);
+  const otherPendingSubmissions = pendingSubmissions.filter(s => s.profile_id !== activeProfile.id);
+
+  const displaySubmissions = scopeFilter === 'active' ? activeProfileSubmissions : pendingSubmissions;
 
   const handleApprove = async (sub: ArticleSubmission) => {
     setProcessingId(sub.id);
@@ -144,30 +149,79 @@ export default function SubmissionsAdminPage() {
           </button>
         </div>
       )}
-      <div className="flex items-center justify-between">
+      {/* Other Workspaces Pending Notice */}
+      {otherPendingSubmissions.length > 0 && scopeFilter === 'active' && (
+        <div className="p-4 rounded-2xl bg-amber-50 border border-amber-200 shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-slate-900 animate-fade-in">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-xl bg-amber-500/20 text-amber-700 flex items-center justify-center shrink-0">
+              <AlertCircle className="w-4 h-4 text-amber-600" />
+            </div>
+            <div>
+              <h4 className="text-xs font-black text-slate-900">
+                Notice: {otherPendingSubmissions.length} pending submission{otherPendingSubmissions.length === 1 ? '' : 's'} in other workspace profiles!
+              </h4>
+              <p className="text-[11px] text-slate-600 font-semibold mt-0.5">
+                Switch workspace tab to &quot;All Workspaces&quot; or select the profile in the top dropdown menu.
+              </p>
+            </div>
+          </div>
+
+          <button
+            onClick={() => setScopeFilter('all')}
+            className="px-3.5 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-white text-xs font-black transition-colors cursor-pointer shrink-0 shadow-xs"
+          >
+            Show All Workspaces ({pendingSubmissions.length})
+          </button>
+        </div>
+      )}
+
+      <div className="flex items-center justify-between gap-4 flex-wrap">
         <div>
           <h1 className="text-xl font-extrabold text-slate-900 flex items-center gap-2">
             <Clock className="w-5 h-5 text-amber-500" />
             <span>Fan Submissions Review</span>
           </h1>
           <p className="text-xs text-slate-600 mt-0.5 font-medium">
-            Pending article link submissions for profile: <span className="text-rose-600 font-bold">{activeProfile.title}</span>
+            {scopeFilter === 'active'
+              ? <>Pending submissions for profile: <span className="text-rose-600 font-bold">{activeProfile.title}</span></>
+              : <>Showing pending submissions across <span className="text-rose-600 font-bold">All Release Workspaces</span></>}
           </p>
         </div>
 
-        <span className="px-3 py-1 rounded-full bg-amber-50 border border-amber-200 text-amber-700 text-xs font-bold shrink-0">
-          {profileSubmissions.length} Pending
-        </span>
+        <div className="flex items-center gap-2 shrink-0">
+          <button
+            onClick={() => setScopeFilter('active')}
+            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+              scopeFilter === 'active'
+                ? 'bg-slate-900 text-white shadow-xs'
+                : 'bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-200'
+            }`}
+          >
+            {activeProfile.title} ({activeProfileSubmissions.length})
+          </button>
+          <button
+            onClick={() => setScopeFilter('all')}
+            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+              scopeFilter === 'all'
+                ? 'bg-slate-900 text-white shadow-xs'
+                : 'bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-200'
+            }`}
+          >
+            All Workspaces ({pendingSubmissions.length})
+          </button>
+        </div>
       </div>
 
       <div className="rounded-2xl glass-panel border border-slate-200 bg-white overflow-hidden shadow-xs">
-        {profileSubmissions.length === 0 ? (
+        {displaySubmissions.length === 0 ? (
           <div className="p-12 text-center text-xs text-slate-500 font-medium">
-            No pending submissions for {activeProfile.title}.
+            {scopeFilter === 'active'
+              ? `No pending submissions for ${activeProfile.title}.`
+              : `No pending submissions across any release profile workspace.`}
           </div>
         ) : (
           <div className="divide-y divide-slate-200">
-            {profileSubmissions.map((sub) => (
+            {displaySubmissions.map((sub) => (
               <div key={sub.id} className="p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 hover:bg-slate-50 transition-colors">
                 <div className="flex items-start gap-3.5 min-w-0 flex-1">
                   {sub.thumbnail ? (
@@ -179,10 +233,25 @@ export default function SubmissionsAdminPage() {
                   )}
 
                   <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
                       <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
                         {sub.website_name || 'Web Article'}
                       </span>
+                      {(() => {
+                        const targetProf = profiles.find(p => p.id === sub.profile_id);
+                        return targetProf ? (
+                          <span
+                            className="px-2 py-0.5 rounded text-[10px] font-extrabold border"
+                            style={{
+                              backgroundColor: `${targetProf.accent_color || '#e11d48'}15`,
+                              borderColor: `${targetProf.accent_color || '#e11d48'}40`,
+                              color: targetProf.accent_color || '#e11d48',
+                            }}
+                          >
+                            Profile: {targetProf.title}
+                          </span>
+                        ) : null;
+                      })()}
                       <span className="text-[10px] text-slate-500 font-medium">Submitted by {sub.submitted_by_name || 'Anonymous Fan'}</span>
                     </div>
 
