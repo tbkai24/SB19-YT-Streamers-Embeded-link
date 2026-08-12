@@ -1,13 +1,14 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Profile } from '@/types/database';
+import { Profile, ArticleSubmission } from '@/types/database';
 import { updateProfilesOrderInSupabase } from '@/lib/data-store';
 import { ChevronDown, Plus, Check, Layers, GripVertical } from 'lucide-react';
 
 interface ProfileSwitcherProps {
   profiles: Profile[];
   activeProfile: Profile | null;
+  submissions?: ArticleSubmission[];
   onSelectProfile: (profile: Profile) => void;
   onCreateNewProfile: () => void;
   onRefreshData?: () => void;
@@ -16,6 +17,7 @@ interface ProfileSwitcherProps {
 export function ActiveProfileSwitcher({
   profiles,
   activeProfile,
+  submissions = [],
   onSelectProfile,
   onCreateNewProfile,
   onRefreshData,
@@ -84,11 +86,13 @@ export function ActiveProfileSwitcher({
     setDragOverIndex(null);
   };
 
+  const totalOtherPending = submissions.filter(s => s.status === 'pending' && s.profile_id !== activeProfile?.id).length;
+
   return (
     <div className="relative" ref={containerRef}>
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-2.5 px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 border border-slate-200 text-slate-900 transition-all text-xs font-bold shadow-2xs cursor-pointer"
+        className="flex items-center gap-2.5 px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 border border-slate-200 text-slate-900 transition-all text-xs font-bold shadow-2xs cursor-pointer relative"
       >
         {activeProfile ? (
           <>
@@ -102,6 +106,10 @@ export function ActiveProfileSwitcher({
           <span>Select Profile</span>
         )}
         <ChevronDown className={`w-4 h-4 text-slate-500 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} />
+        
+        {totalOtherPending > 0 && (
+          <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse absolute -top-0.5 -right-0.5" title="Other profile has pending submissions" />
+        )}
       </button>
 
       {isOpen && (
@@ -117,6 +125,8 @@ export function ActiveProfileSwitcher({
           <div className="max-h-64 overflow-y-auto space-y-1">
             {profileList.map((profile, idx) => {
               const isSelected = activeProfile?.id === profile.id;
+              const pendingCount = submissions.filter(s => s.profile_id === profile.id && s.status === 'pending').length;
+
               return (
                 <div
                   key={profile.id}
@@ -155,7 +165,14 @@ export function ActiveProfileSwitcher({
                     </button>
                   </div>
 
-                  {isSelected && <Check className="w-4 h-4 text-rose-600 shrink-0 ml-1" />}
+                  <div className="flex items-center gap-1.5 shrink-0 ml-1">
+                    {pendingCount > 0 && (
+                      <span className="px-1.5 py-0.5 rounded-md bg-amber-50 text-amber-700 border border-amber-200 text-[9px] font-extrabold" title={`${pendingCount} pending submission(s) for this profile`}>
+                        {pendingCount} pending
+                      </span>
+                    )}
+                    {isSelected && <Check className="w-4 h-4 text-rose-600 shrink-0" />}
+                  </div>
                 </div>
               );
             })}

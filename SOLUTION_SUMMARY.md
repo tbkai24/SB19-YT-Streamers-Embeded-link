@@ -169,3 +169,22 @@ When building future Web Apps or PWAs:
 5. Register `/sw.js` service worker with VAPID web push subscriptions saved to `push_subscriptions` table for instant PWA push notification broadcasts.
 6. Use `extractContentFingerprint()` and HTML `<link rel="canonical">` extraction to prevent duplicate submissions across different URL formats.
 7. Always clean up temporary test scripts and dead code after completing work to maintain a clean codebase.
+
+---
+
+## 8. 🛠️ Direct Workspace Switcher Drag-and-Drop & Standalone Admin Login Layout
+
+### 1. Standalone Admin Login Layout (`app/(admin)/admin/layout.tsx`)
+- **Bypassed Admin Navbar & Sidebar**: Solved the layout bug where navigating to `/admin/login` rendered the admin header navbar and sidebar navigation. Added `if (pathname === '/admin/login') return <>{children}</>;` to isolate the login screen as a clean, full-viewport standalone page.
+
+### 2. Strict Workspace-Scoped Submission Badging & Cross-Profile Notice Banner
+- **Current Workspace Scoped Sidebar Badge**: Solved the misleading sidebar count bug where `pendingCount` checked submissions for all profiles combined. Scoped `pendingCount` in `AdminLayout` strictly to `activeProfile.id`.
+- **Subtle Cross-Profile Indicator**: Added an amber pulsing indicator dot on the header profile switcher toggle button whenever other workspace profiles contain pending submissions, preventing misleading counts on the sidebar while ensuring admins never miss incoming fan submissions.
+- **Direct Per-Profile Tags & Cross-Profile Filter**: Added a `Current Workspace` vs `All Workspaces` toggle on `admin/submissions/page.tsx` with color-coded workspace tags (`Profile: LAWLESS`, `Profile: TF`), allowing admins to review and approve/reject submissions across any profile without needing to switch active workspaces.
+
+### 3. Drag and Drop Profile & Article Re-ordering
+- **Direct Header Dropdown Re-ordering (`components/admin/active-profile-switcher.tsx`)**: Integrated HTML5 Drag & Drop directly inside the header profile switcher dropdown menu with `GripVertical` handles (`⋮⋮`), enabling instant drag-and-drop re-ordering of release profiles without opening modals.
+- **Article Card Drag-and-Drop (`app/(admin)/admin/articles/page.tsx`)**: Added `GripVertical` handles on article card rows for fluid drag-and-drop re-ordering.
+- **Database Sequence Order Sync (`lib/data-store.ts`)**: Created `updateProfilesOrderInSupabase` and `updateArticlesOrderInSupabase` executing batch PostgreSQL updates to assign sequential `display_order` (1, 2, 3...) to Supabase DB.
+- **Dead Code Cleanup**: Deleted unused `reorder-profiles-modal.tsx` to maintain documentation and repository integrity.
+

@@ -54,15 +54,20 @@ export function useAdminWorkspace() {
 }
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
+  const pathname = usePathname();
+  const router = useRouter();
+
+  // Standalone Login Page (Bypasses Admin Header & Sidebar Layout)
+  if (pathname === '/admin/login') {
+    return <>{children}</>;
+  }
+
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [activeProfile, setActiveProfile] = useState<Profile | null>(null);
   const [articles, setArticles] = useState<Article[]>([]);
   const [submissions, setSubmissions] = useState<ArticleSubmission[]>([]);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
-
-  const pathname = usePathname();
-  const router = useRouter();
 
   useEffect(() => {
     // Check Admin Authentication
@@ -202,6 +207,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             <ActiveProfileSwitcher
               profiles={profiles}
               activeProfile={activeProfile}
+              submissions={submissions}
               onSelectProfile={(p) => setActiveProfile(p)}
               onCreateNewProfile={() => setIsCreateOpen(true)}
               onRefreshData={loadAllData}
