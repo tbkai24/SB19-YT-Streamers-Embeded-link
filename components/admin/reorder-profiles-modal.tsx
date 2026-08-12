@@ -3,8 +3,8 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Profile } from '@/types/database';
-import { saveProfiles, saveProfileToSupabase } from '@/lib/data-store';
-import { Layers, MoveUp, MoveDown, X, CheckCircle2, Loader2 } from 'lucide-react';
+import { saveProfiles, updateProfilesOrderInSupabase } from '@/lib/data-store';
+import { Layers, MoveUp, MoveDown, X, CheckCircle2, Loader2, GripVertical } from 'lucide-react';
 
 interface ReorderProfilesModalProps {
   isOpen: boolean;
@@ -22,6 +22,8 @@ export function ReorderProfilesModal({
   const [mounted, setMounted] = useState(false);
   const [list, setList] = useState<Profile[]>([]);
   const [saving, setSaving] = useState(false);
+  const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
+  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
 
   useEffect(() => {
     setMounted(true);
@@ -46,20 +48,50 @@ export function ReorderProfilesModal({
     setList(updated);
   };
 
-  const handleSave = async () => {
-    setSaving(true);
-    const updated = list.map((p, idx) => ({
-      ...p,
-      display_order: idx + 1,
-      updated_at: new Date().toISOString(),
-    }));
+  const handleDragStart = (e: React.DragEvent, index: number) => {
+    setDraggedIndex(index);
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', index.toString());
+  };
 
-    saveProfiles(updated);
+  const handleDragOver = (e: React.DragEvent, index: number) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    if (dragOverIndex !== index) {
+      setDragOverIndex(index);
+    }
+  };
 
-    for (const p of updated) {
-      await saveProfileToSupabase(p);
+  const handleDrop = (e: React.DragEvent, targetIndex: number) => {
+    e.preventDefault();
+    if (draggedIndex === null || draggedIndex === targetIndex) {
+      setDraggedIndex(null);
+      setDragOverIndex(null);
+      return;
     }
 
+    const updated = [...list];
+    const [draggedItem] = updated.splice(draggedIndex, 1);
+    updated.splice(targetIndex, 0, draggedItem);
+
+    setList(updated);
+    setDraggedIndex(null);
+    setDragOverIndex(null);
+  };
+
+  const handleDragEnd = () => {
+    setDraggedIndex(null);
+    setDragOverIndex(null);
+  };
+
+  const handleSave = async () => {
+    setSaving(true);
+    const updates = list.map((p, idx) => ({
+      id: p.id,
+      display_order: idx + 1,
+    }));
+
+    await updateProfilesOrderInSupabase(updates);
     setSaving(false);
     onSaved();
     onClose();
@@ -92,22 +124,43 @@ export function ReorderProfilesModal({
 
         <div className="max-h-72 overflow-y-auto divide-y divide-slate-100 border border-slate-200 rounded-2xl bg-slate-50/50">
           {list.map((profile, idx) => (
-            <div key={profile.id} className="p-3 flex items-center justify-between gap-3 hover:bg-white transition-colors">
-              <div className="flex items-center gap-3 min-w-0">
+            <div
+              key={profile.id}
+              draggable={true}
+              onDragStart={(e) => handleDragStart(e, idx)}
+              onDragOver={(e) => handleDragOver(e, idx)}
+              onDrop={(e) => handleDrop(e, idx)}
+              onDragEnd={handleDragEnd}
+              className={`p-3 flex items-center justify-between gap-3 transition-all duration-150 ${
+                draggedIndex === idx ? 'opacity-30 bg-rose-50/50 scale-[0.98] border-2 border-dashed border-rose-300' :
+                dragOverIndex === idx ? 'bg-rose-50 border-t-2 border-rose-600 scale-[1.01] shadow-xs' :
+                'hover:bg-white'
+              }`}
+            >
+              <div className="flex items-center gap-2.5 min-w-0">
+                <div
+                  className="p-1 text-slate-400 hover:text-rose-600 cursor-grab active:cursor-grabbing rounded-lg hover:bg-slate-200/60 transition-colors shrink-0"
+                  title="Click & Drag to re-order profile"
+                >
+                  <GripVertical className="w-4 h-4" />
+                </div>
+
                 <div className="flex flex-col gap-0.5 shrink-0">
                   <button
                     disabled={idx === 0}
                     onClick={() => handleMove(idx, 'up')}
-                    className="p-1 text-slate-400 hover:text-slate-900 disabled:opacity-20 cursor-pointer"
+                    className="p-0.5 text-slate-400 hover:text-slate-900 disabled:opacity-20 cursor-pointer"
+                    title="Move up 1 step"
                   >
-                    <MoveUp className="w-3.5 h-3.5" />
+                    <MoveUp className="w-3 h-3" />
                   </button>
                   <button
                     disabled={idx === list.length - 1}
                     onClick={() => handleMove(idx, 'down')}
-                    className="p-1 text-slate-400 hover:text-slate-900 disabled:opacity-20 cursor-pointer"
+                    className="p-0.5 text-slate-400 hover:text-slate-900 disabled:opacity-20 cursor-pointer"
+                    title="Move down 1 step"
                   >
-                    <MoveDown className="w-3.5 h-3.5" />
+                    <MoveDown className="w-3 h-3" />
                   </button>
                 </div>
 

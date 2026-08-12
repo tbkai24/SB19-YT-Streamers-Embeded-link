@@ -8,7 +8,7 @@ import { getStoredArticles, saveArticles, saveArticleToSupabase, updateArticleSt
 import { normalizeUrl, decodeHtmlEntities, isEligibleForArticleOfTheDay, translateTextToEnglish } from '@/lib/url-normalizer';
 import { ImageUploadInput } from '@/components/admin/image-upload-input';
 import { DeleteConfirmModal } from '@/components/admin/delete-confirm-modal';
-import { Plus, Trash2, Edit2, ExternalLink, Sparkles, Loader2, Link2, MoveUp, MoveDown, X, CheckCircle2, Shuffle, Archive, RotateCcw, AlertTriangle, ArrowUpDown, MessageSquare, Filter, Globe } from 'lucide-react';
+import { Plus, Trash2, Edit2, ExternalLink, Sparkles, Loader2, Link2, MoveUp, MoveDown, X, CheckCircle2, Shuffle, Archive, RotateCcw, AlertTriangle, ArrowUpDown, MessageSquare, Filter, Globe, GripVertical } from 'lucide-react';
 
 function getDailyArticlePick(articles: Article[]): { article: Article; quote: string } | null {
   if (!articles || articles.length === 0) return null;
@@ -118,6 +118,8 @@ export default function ArticlesAdminPage() {
   const [sortBy, setSortBy] = useState<'order' | 'name-asc' | 'name-desc' | 'clicks-desc' | 'clicks-asc' | 'newest' | 'oldest'>('order');
   const [softDeleteTarget, setSoftDeleteTarget] = useState<Article | null>(null);
   const [permDeleteTarget, setPermDeleteTarget] = useState<Article | null>(null);
+  const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
+  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
 
   const [url, setUrl] = useState('');
   const [title, setTitle] = useState('');
@@ -378,6 +380,57 @@ export default function ArticlesAdminPage() {
     showToast(`Reshuffled ${shuffled.length} articles order randomly!`, 'success');
   };
 
+  const handleDragStart = (e: React.DragEvent, index: number) => {
+    setDraggedIndex(index);
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', index.toString());
+  };
+
+  const handleDragOver = (e: React.DragEvent, index: number) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    if (dragOverIndex !== index) {
+      setDragOverIndex(index);
+    }
+  };
+
+  const handleDrop = async (e: React.DragEvent, targetIndex: number) => {
+    e.preventDefault();
+    if (draggedIndex === null || draggedIndex === targetIndex) {
+      setDraggedIndex(null);
+      setDragOverIndex(null);
+      return;
+    }
+
+    const currentList = [...activeArticles];
+    const [draggedItem] = currentList.splice(draggedIndex, 1);
+    currentList.splice(targetIndex, 0, draggedItem);
+
+    setDraggedIndex(null);
+    setDragOverIndex(null);
+
+    const updates = currentList.map((art, idx) => ({
+      id: art.id,
+      display_order: idx + 1,
+    }));
+
+    const allArticles = getStoredArticles();
+    const updatedLocal = allArticles.map(a => {
+      const match = updates.find(u => u.id === a.id);
+      return match ? { ...a, display_order: match.display_order } : a;
+    });
+    saveArticles(updatedLocal);
+
+    await updateArticlesOrderInSupabase(updates);
+    refreshData();
+    showToast('Articles re-ordered via Drag & Drop!', 'success');
+  };
+
+  const handleDragEnd = () => {
+    setDraggedIndex(null);
+    setDragOverIndex(null);
+  };
+
   const openEdit = (art: Article) => {
     setEditingArticle(art);
     setUrl(art.article_url);
@@ -580,24 +633,47 @@ export default function ArticlesAdminPage() {
         ) : (
           <div className="divide-y divide-slate-200">
             {sortedTabArticles.map((art, idx) => (
-              <div key={art.id} className="p-4 flex items-center justify-between gap-4 hover:bg-slate-50 transition-colors">
-                <div className="flex items-center gap-3.5 min-w-0 flex-1">
+              <div
+                key={art.id}
+                draggable={viewTab === 'active' && sortBy === 'order'}
+                onDragStart={(e) => handleDragStart(e, idx)}
+                onDragOver={(e) => handleDragOver(e, idx)}
+                onDrop={(e) => handleDrop(e, idx)}
+                onDragEnd={handleDragEnd}
+                className={`p-4 flex items-center justify-between gap-4 transition-all duration-150 ${
+                  draggedIndex === idx ? 'opacity-30 bg-rose-50/50 scale-[0.98] border-2 border-dashed border-rose-300' :
+                  dragOverIndex === idx ? 'bg-rose-50 border-t-2 border-rose-600 scale-[1.01] shadow-xs' :
+                  'hover:bg-slate-50'
+                }`}
+              >
+                <div className="flex items-center gap-3 min-w-0 flex-1">
                   {viewTab === 'active' && (
-                    <div className="flex flex-col gap-1 shrink-0">
-                      <button
-                        disabled={idx === 0}
-                        onClick={() => handleMoveOrder(art.id, 'up')}
-                        className="p-1 text-slate-400 hover:text-slate-900 disabled:opacity-30 cursor-pointer"
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <div
+                        className="p-1.5 text-slate-400 hover:text-rose-600 cursor-grab active:cursor-grabbing rounded-lg hover:bg-slate-200/60 transition-colors"
+                        title="Click & Drag to re-order article position"
                       >
-                        <MoveUp className="w-3.5 h-3.5" />
-                      </button>
-                      <button
-                        disabled={idx === activeArticles.length - 1}
-                        onClick={() => handleMoveOrder(art.id, 'down')}
-                        className="p-1 text-slate-400 hover:text-slate-900 disabled:opacity-30 cursor-pointer"
-                      >
-                        <MoveDown className="w-3.5 h-3.5" />
-                      </button>
+                        <GripVertical className="w-4 h-4" />
+                      </div>
+
+                      <div className="flex flex-col gap-0.5 shrink-0">
+                        <button
+                          disabled={idx === 0}
+                          onClick={() => handleMoveOrder(art.id, 'up')}
+                          className="p-0.5 text-slate-400 hover:text-slate-900 disabled:opacity-20 cursor-pointer"
+                          title="Move up 1 step"
+                        >
+                          <MoveUp className="w-3 h-3" />
+                        </button>
+                        <button
+                          disabled={idx === activeArticles.length - 1}
+                          onClick={() => handleMoveOrder(art.id, 'down')}
+                          className="p-0.5 text-slate-400 hover:text-slate-900 disabled:opacity-20 cursor-pointer"
+                          title="Move down 1 step"
+                        >
+                          <MoveDown className="w-3 h-3" />
+                        </button>
+                      </div>
                     </div>
                   )}
 
