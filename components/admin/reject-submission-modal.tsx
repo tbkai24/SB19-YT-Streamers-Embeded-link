@@ -5,6 +5,7 @@ import { createPortal } from 'react-dom';
 import { ArticleSubmission } from '@/types/database';
 import { X, AlertTriangle } from 'lucide-react';
 
+// Props for RejectSubmissionModal component
 interface RejectSubmissionModalProps {
   submission: ArticleSubmission | null;
   isOpen: boolean;
@@ -12,6 +13,7 @@ interface RejectSubmissionModalProps {
   onReject: (submissionId: string, reason: string) => void;
 }
 
+// Preset reasons list for declining user submissions
 const REJECTION_REASONS = [
   'Duplicate Article',
   'Broken Link / Inaccessible Page',
@@ -21,6 +23,7 @@ const REJECTION_REASONS = [
   'Other / Quality Concerns',
 ];
 
+// Admin modal for specifying rejection reason before archiving a submission
 export function RejectSubmissionModal({
   submission,
   isOpen,
@@ -36,6 +39,7 @@ export function RejectSubmissionModal({
 
   if (!isOpen || !submission || !mounted) return null;
 
+  // Handles submitting the chosen rejection reason
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     onReject(submission.id, selectedReason);
@@ -43,8 +47,11 @@ export function RejectSubmissionModal({
   };
 
   return createPortal(
+    // Backdrop modal overlay
     <div className="fixed inset-0 z-[9999] flex items-start justify-center p-4 sm:p-6 pt-24 sm:pt-28 pb-10 bg-slate-900/60 backdrop-blur-md animate-fade-in overflow-y-auto">
+      {/* Modal card container */}
       <div className="relative w-full max-w-md max-h-[calc(100vh-130px)] flex flex-col rounded-3xl bg-white p-6 border border-slate-200 shadow-2xl text-slate-900 overflow-hidden shrink-0">
+        {/* Modal header */}
         <div className="flex items-center justify-between pb-4 border-b border-slate-200">
           <div className="flex items-center gap-3 text-rose-600">
             <div className="w-10 h-10 rounded-2xl bg-rose-50 border border-rose-200 flex items-center justify-center text-rose-600 shadow-xs">
@@ -63,11 +70,13 @@ export function RejectSubmissionModal({
           </button>
         </div>
 
+        {/* Rejection form & reasons selection */}
         <form onSubmit={handleSubmit} className="mt-4 space-y-4">
           <p className="text-xs text-slate-700 font-bold">
             Select a rejection reason for <span className="font-black text-slate-900">{submission.title || submission.article_url}</span>:
           </p>
 
+          {/* Radio list of rejection options */}
           <div className="space-y-2">
             {REJECTION_REASONS.map((reason) => (
               <label
@@ -90,6 +99,7 @@ export function RejectSubmissionModal({
             ))}
           </div>
 
+          {/* Action buttons footer */}
           <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-200 mt-4">
             <button
               type="button"

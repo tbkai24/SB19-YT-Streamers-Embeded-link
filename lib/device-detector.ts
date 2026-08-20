@@ -1,5 +1,7 @@
+// Device type definitions
 export type DeviceType = 'mobile' | 'desktop' | 'tablet';
 
+// Detects device type (mobile vs tablet vs desktop) from browser User-Agent
 export function detectDeviceType(): DeviceType {
   if (typeof window === 'undefined') return 'desktop';
 
@@ -17,6 +19,7 @@ export function detectDeviceType(): DeviceType {
 
 const COUNTRY_CACHE_KEY = 'sb19_user_country_code';
 
+// Automatically detects user's 2-letter Country Code via IP lookup (with fallback providers)
 export async function detectCountryCode(): Promise<string> {
   if (typeof window === 'undefined') return 'PH';
 
@@ -58,6 +61,7 @@ export async function detectCountryCode(): Promise<string> {
   return 'PH';
 }
 
+// Converts 2-letter Country Code (e.g. 'PH', 'US') to flag emoji (e.g. 🇵🇭, 🇺🇸)
 export function getCountryFlagEmoji(countryCode: string): string {
   if (!countryCode || countryCode.length !== 2) return '🌐';
   const codePoints = countryCode
@@ -67,6 +71,7 @@ export function getCountryFlagEmoji(countryCode: string): string {
   return String.fromCodePoint(...codePoints);
 }
 
+// Country code to full country name lookup table
 export const COUNTRY_NAMES: Record<string, string> = {
   PH: 'Philippines',
   US: 'United States',
@@ -118,6 +123,7 @@ export const COUNTRY_NAMES: Record<string, string> = {
   OM: 'Oman',
 };
 
+// Returns full country name from 2-letter country code
 export function getCountryName(countryCode: string): string {
   if (!countryCode) return 'Unknown';
   const code = countryCode.toUpperCase().trim();
@@ -132,6 +138,7 @@ export function getCountryName(countryCode: string): string {
   return code;
 }
 
+// Normalizes referrer URLs (Twitter/X, Facebook, Instagram, Google, Direct Link)
 export function normalizeReferrer(referrerUrl?: string | null): string {
   if (!referrerUrl || typeof referrerUrl !== 'string' || !referrerUrl.trim()) {
     return 'Direct Link';
@@ -179,6 +186,7 @@ export function normalizeReferrer(referrerUrl?: string | null): string {
 
 let cachedClientIp = '';
 
+// Fetches client IP address for analytics tracking
 export async function getClientIp(): Promise<string> {
   if (typeof window === 'undefined') return '127.0.0.1';
   if (cachedClientIp) return cachedClientIp;

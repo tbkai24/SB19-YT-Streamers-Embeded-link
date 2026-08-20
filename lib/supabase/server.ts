@@ -1,12 +1,15 @@
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 
+// Server-side Supabase client initialization for API routes and server pages
 export async function createServerSupabaseClient() {
   const cookieStore = await cookies();
 
+  // Load environment variables for Supabase connection
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co';
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder-anon-key';
 
+  // Return server client with cookie management
   return createServerClient(supabaseUrl, supabaseAnonKey, {
     cookies: {
       getAll() {
@@ -18,7 +21,7 @@ export async function createServerSupabaseClient() {
             cookieStore.set(name, value, options)
           );
         } catch {
-          // Handled in Server Components
+          // Handled safely during server component rendering
         }
       },
     },

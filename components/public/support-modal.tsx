@@ -5,17 +5,19 @@ import { Profile, SupportQrOption } from '@/types/database';
 import { getCloudinaryImageUrl } from '@/lib/cloudinary';
 import { Heart, X, Copy, Check, QrCode, Sparkles, CreditCard, Wallet } from 'lucide-react';
 
+// Props for SupportModal component
 interface SupportModalProps {
   profile: Profile;
   isOpen: boolean;
   onClose: () => void;
 }
 
+// Modal component for displaying donation / hosting support QR codes and payment details
 export function SupportModal({ profile, isOpen, onClose }: SupportModalProps) {
   const [selectedOptId, setSelectedOptId] = useState<string>('');
   const [copied, setCopied] = useState(false);
 
-  // Normalize options array or fallback to legacy single QR
+  // Normalize options array or fallback to legacy single QR code
   const options: SupportQrOption[] = React.useMemo(() => {
     if (profile.support_qr_options && profile.support_qr_options.length > 0) {
       return profile.support_qr_options;
@@ -45,6 +47,7 @@ export function SupportModal({ profile, isOpen, onClose }: SupportModalProps) {
   const title = profile.support_title || 'Support Project & Hosting Maintenance';
   const note = profile.support_note || 'Optional support to help maintain server and hosting costs for the SB19 YouTube Streamers Hub!';
 
+  // Handles copying account number or wallet link to clipboard
   const handleCopyText = (text: string) => {
     if (text) {
       navigator.clipboard.writeText(text);
@@ -54,9 +57,10 @@ export function SupportModal({ profile, isOpen, onClose }: SupportModalProps) {
   };
 
   return (
+    // Modal backdrop overlay
     <div className="fixed inset-0 z-50 bg-slate-900/65 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in">
       <div className="bg-white rounded-3xl max-w-sm w-full p-6 shadow-2xl border border-slate-200 relative text-center space-y-4">
-        {/* Close Button */}
+        {/* Close Modal Button */}
         <button
           onClick={onClose}
           className="absolute top-4 right-4 p-2 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-800 transition-colors cursor-pointer"

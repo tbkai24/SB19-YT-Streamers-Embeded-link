@@ -1,5 +1,6 @@
 'use client';
 
+// Imports for icons, database types, data tracking, and image handling
 import React from 'react';
 import { Article } from '@/types/database';
 import { recordArticleClick } from '@/lib/data-store';
@@ -8,21 +9,24 @@ import { getWebsiteBadgeStyle } from '@/lib/brand-colors';
 import { getCloudinaryImageUrl } from '@/lib/cloudinary';
 import { ExternalLink, PlayCircle } from 'lucide-react';
 
+// Props passed into ArticleCard component
 interface ArticleCardProps {
   article: Article;
   accentColor?: string;
   isEngagementProfile?: boolean;
 }
 
+// Renders an individual article or social engagement card with thumbnail preview and CTA button
 export function ArticleCard({ article, accentColor = '#e11d48', isEngagementProfile = false }: ArticleCardProps) {
   const [imageError, setImageError] = React.useState(false);
   const brandStyle = getWebsiteBadgeStyle(article.website_name);
   const cleanSite = (article.website_name || '').toLowerCase();
   
-  const isSocialPlatform = isEngagementProfile || ['tiktok', 'facebook', 'fb', 'x', 'twitter', 'instagram', 'ig', 'threads'].some(p => cleanSite.includes(p));
-  const ctaText = isEngagementProfile ? (cleanSite.includes('tiktok') ? 'TikTok Boost' : cleanSite.includes('facebook') ? 'Engage Post' : cleanSite.includes('x') || cleanSite.includes('twitter') ? 'Engage Tweet' : 'Engage Now') : 'Open';
+  // Standardized Action Label: "Open"
+  const ctaText = 'Open';
 
   return (
+    // Main card container link - records click count when clicked
     <a
       href={article.article_url}
       target="_blank"
@@ -31,7 +35,7 @@ export function ArticleCard({ article, accentColor = '#e11d48', isEngagementProf
       className="group relative block w-full rounded-2xl overflow-hidden glass-card p-4 transition-all duration-300 border border-slate-200 hover:border-rose-400 shadow-sm"
     >
       <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
-        {/* Thumbnail preview */}
+        {/* Thumbnail preview section */}
         {article.thumbnail && !imageError ? (
           <div className="relative w-full sm:w-28 h-28 sm:h-20 rounded-xl overflow-hidden bg-slate-100 shrink-0 border border-slate-200">
             <img
@@ -51,7 +55,7 @@ export function ArticleCard({ article, accentColor = '#e11d48', isEngagementProf
           </div>
         )}
 
-        {/* Content */}
+        {/* Content details: Brand Badge, Article Title, & Description */}
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-1">
             <span 
@@ -75,11 +79,11 @@ export function ArticleCard({ article, accentColor = '#e11d48', isEngagementProf
           )}
         </div>
 
-        {/* Action button icon */}
+        {/* Action Button: Styled using the chosen theme accent color */}
         <div className="shrink-0 flex items-center justify-end sm:self-center w-full sm:w-auto mt-2 sm:mt-0">
           <div 
             className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold text-white transition-all group-hover:translate-x-0.5 shadow-sm"
-            style={{ backgroundColor: isSocialPlatform ? (brandStyle.bg === '#ffff00' || brandStyle.text === '#00f2fe' ? '#0f172a' : brandStyle.bg) : accentColor }}
+            style={{ backgroundColor: accentColor }}
           >
             <span>{ctaText}</span>
             <ExternalLink className="w-3.5 h-3.5" />

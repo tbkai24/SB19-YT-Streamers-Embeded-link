@@ -1,3 +1,10 @@
+/**
+ * Supabase Browser Client Factory
+ * -------------------------------------------------------------------
+ * Creates an instance of the Supabase client specifically for Browser / Client-Side components.
+ * Uses `@supabase/ssr` to maintain consistent cookie and session handling across client and server.
+ */
+
 import { createBrowserClient } from '@supabase/ssr';
 
 export function createClient() {

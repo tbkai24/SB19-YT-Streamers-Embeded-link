@@ -1,5 +1,6 @@
 'use client';
 
+// Component dependencies and utility imports
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Profile } from '@/types/database';
@@ -8,12 +9,14 @@ import { extractYouTubeId } from '@/lib/url-normalizer';
 import { ImageUploadInput } from './image-upload-input';
 import { X, Sparkles, Plus, Trash2, Share2, AlertCircle, Loader2, Video, PlayCircle, Copy } from 'lucide-react';
 
+// Modal props definition
 interface CreateProfileModalProps {
   isOpen: boolean;
   onClose: () => void;
   onCreated: (newProfile: Profile) => void;
 }
 
+// Social platform item structure
 interface SocialItem {
   id: string;
   platform: string;
@@ -21,6 +24,7 @@ interface SocialItem {
   url: string;
 }
 
+// Social platform preset options
 const PLATFORM_OPTIONS = [
   { value: 'youtube', label: 'YouTube' },
   { value: 'instagram', label: 'Instagram' },
@@ -34,7 +38,9 @@ const PLATFORM_OPTIONS = [
   { value: 'custom', label: '+ Add Custom Platform...' },
 ] as const;
 
+// Admin modal for creating a new profile (Embed Hub or Engagement Hub)
 export function CreateProfileModal({ isOpen, onClose, onCreated }: CreateProfileModalProps) {
+  // Modal form state variables
   const [mounted, setMounted] = useState(false);
   const [title, setTitle] = useState('');
   const [slug, setSlug] = useState('');

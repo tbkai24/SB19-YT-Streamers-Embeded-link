@@ -3,16 +3,20 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 
+// Logo component props
 interface LogoProps {
   size?: 'sm' | 'md' | 'lg';
   showText?: boolean;
 }
 
+// Brand Logo component - displays the SB19 YouTube Streamers logo and title
 export function BrandLogo({ size = 'md', showText = true }: LogoProps) {
   const [imgError, setImgError] = useState(false);
 
+  // Local fallback logo asset
   const localLogoUrl = '/assets/ytslogo.jpg';
 
+  // Responsive size presets
   const iconSizes = {
     sm: 'w-7 h-7 text-xs',
     md: 'w-9 h-9 text-sm',
@@ -21,6 +25,7 @@ export function BrandLogo({ size = 'md', showText = true }: LogoProps) {
 
   return (
     <Link href="/" className="flex items-center gap-2.5 group">
+      {/* Brand logo icon / image preview */}
       <div className="relative shrink-0">
         {!imgError ? (
           <img
@@ -36,6 +41,7 @@ export function BrandLogo({ size = 'md', showText = true }: LogoProps) {
         )}
       </div>
 
+      {/* Brand title text */}
       {showText && (
         <div className="flex flex-col text-left">
           <span className="font-extrabold text-slate-900 tracking-tight leading-none text-sm group-hover:text-rose-600 transition-colors">

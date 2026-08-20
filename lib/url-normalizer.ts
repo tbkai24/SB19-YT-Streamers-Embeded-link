@@ -1,7 +1,21 @@
 /**
- * Normalizes a URL by removing all tracking parameters (UTM, fbclid, igsh, si, etc.),
- * stripping trailing slashes, standardizing mobile/shortened hostnames, and returning a clean canonical string.
+ * ============================================================================
+ * URL NORMALIZER & CONTENT FINGERPRINTING MODULE (lib/url-normalizer.ts)
+ * Collaborative Developer Guide & Anti-Duplicate Content Engine
+ * ============================================================================
+ * 
+ * Purpose:
+ * Sanitizes external article URLs, strips tracking query strings (UTM, fbclid, igsh, si),
+ * extracts platform content fingerprints (Reddit, YouTube, Twitter/X, Instagram, TikTok),
+ * and prevents duplicate link submissions across multi-format URLs and titles.
+ * 
+ * Key Functions Index:
+ * - normalizeUrl              -> Strips tracking params & normalizes hostnames (youtu.be -> youtube.com)
+ * - extractContentFingerprint -> Extracts canonical post ID (e.g. reddit:1vbgby9, twitter:18823719)
+ * - isDuplicateUrl            -> Compares fingerprint, canonical URL, and title similarity
+ * ============================================================================
  */
+
 export function normalizeUrl(rawUrl: string): string {
   if (!rawUrl) return '';
 

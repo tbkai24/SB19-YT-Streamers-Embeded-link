@@ -1,3 +1,20 @@
+/**
+ * ============================================================================
+ * ADMIN WORKSPACE LAYOUT & STATE PROVIDER (app/(admin)/admin/layout.tsx)
+ * Collaborative Developer Guide & Navigation Shell
+ * ============================================================================
+ * 
+ * Purpose:
+ * Provides the global workspace context (`AdminWorkspaceContext`) for all admin routes,
+ * manages active profile selection, authenticates session tokens, and renders the top header & sidebar.
+ * 
+ * Key Features:
+ * 1. Standalone Auth Route Bypass: Automatically bypasses header & sidebar layout for `/admin/login`.
+ * 2. Active Profile Scoped Badges: Scopes sidebar notification counts strictly to the active workspace.
+ * 3. Realtime Data Sync: Polls and caches profiles, articles, and submissions across Supabase DB.
+ * ============================================================================
+ */
+
 'use client';
 
 import React, { useState, useEffect, createContext, useContext } from 'react';

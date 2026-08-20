@@ -4,10 +4,12 @@ import React from 'react';
 import { Profile } from '@/types/database';
 import { Globe, MessageSquare } from 'lucide-react';
 
+// Props for SocialLinks component
 interface SocialLinksProps {
   profile: Profile;
 }
 
+// Inline SVG Icon components for social media platforms
 const YoutubeIcon = ({ className }: { className?: string }) => (
   <svg className={className} fill="currentColor" viewBox="0 0 24 24">
     <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
@@ -56,6 +58,7 @@ const ThreadsIcon = ({ className }: { className?: string }) => (
   </svg>
 );
 
+// Helper function to return icon component based on platform name string
 function getPlatformIcon(platform: string) {
   const p = platform.toLowerCase();
   if (p.includes('youtube') || p.includes('yt')) return YoutubeIcon;
@@ -69,6 +72,7 @@ function getPlatformIcon(platform: string) {
   return Globe;
 }
 
+// Ensures URL starts with http:// or https://
 const formatDirectUrl = (url: string) => {
   if (!url) return '#';
   const trimmed = url.trim();
@@ -78,6 +82,7 @@ const formatDirectUrl = (url: string) => {
   return trimmed;
 };
 
+// Main SocialLinks component - renders row of profile social media icons
 export function SocialLinks({ profile }: SocialLinksProps) {
   const getCleanYoutubeUrl = (url: string | null) => {
     if (!url) return null;
@@ -87,6 +92,7 @@ export function SocialLinks({ profile }: SocialLinksProps) {
     return url;
   };
 
+  // Standard profile social links list
   const standardLinks = [
     { key: 'website_url', label: 'Website', url: profile.website_url, icon: Globe },
     { key: 'youtube_url', label: 'YouTube', url: getCleanYoutubeUrl(profile.youtube_url), icon: YoutubeIcon },
@@ -96,6 +102,7 @@ export function SocialLinks({ profile }: SocialLinksProps) {
     { key: 'threads_url', label: 'Threads', url: profile.threads_url, icon: ThreadsIcon },
   ].filter(link => Boolean(link.url));
 
+  // Custom user-defined social links list
   const customLinks = (profile.custom_social_links || []).map((c, idx) => ({
     key: `custom-${idx}`,
     label: c.platform || 'Social Link',
@@ -103,11 +110,13 @@ export function SocialLinks({ profile }: SocialLinksProps) {
     icon: getPlatformIcon(c.platform),
   }));
 
+  // Combine standard and custom social links
   const links = [...standardLinks, ...customLinks];
 
   if (links.length === 0) return null;
 
   return (
+    // Render icon buttons flex row
     <div className="flex items-center justify-center flex-wrap gap-3 my-6">
       {links.map((link) => {
         const IconComponent = link.icon;

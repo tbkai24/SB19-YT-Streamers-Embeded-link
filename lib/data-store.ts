@@ -1,3 +1,21 @@
+/**
+ * ============================================================================
+ * DATA STORE MODULE (lib/data-store.ts)
+ * Collaborative Developer Guide & Database Operations Layer
+ * ============================================================================
+ * 
+ * Purpose:
+ * Central repository manager handling local caching (localStorage _v7), in-memory TTL caching,
+ * Edge-API fallback queries, and direct Supabase PostgreSQL database mutations.
+ * 
+ * Key Functions Index:
+ * - fetchProfilesFromSupabase / saveProfileToSupabase   -> Release profile CRUD
+ * - updateProfilesOrderInSupabase / updateArticlesOrder -> Batch Drag & Drop sequence order updates
+ * - updateArticleStatusInSupabase                       -> Soft-delete / restore toggle ('active' | 'archived')
+ * - submitArticleLink                                   -> Real-time duplicate checking & submission queue
+ * ============================================================================
+ */
+
 import { Profile, Article, ArticleSubmission, ExtractedMetadata, AnalyticsEvent, DailyTrafficStat, NotificationItem, ArticleStatus } from '@/types/database';
 import { createClient } from '@/lib/supabase/client';
 import { normalizeUrl, isDuplicateUrl } from './url-normalizer';
@@ -10,7 +28,16 @@ const LOCAL_STORAGE_KEY_ANALYTICS = 'sb19_hub_analytics_events_v7';
 const LOCAL_STORAGE_KEY_DAILY_TRAFFIC = 'sb19_hub_daily_traffic_v7';
 const LOCAL_STORAGE_KEY_NOTIFICATIONS = 'sb19_hub_notifications_v7';
 
-// 1. PROFILES
+/**
+ * ----------------------------------------------------------------------------
+ * 1. PROFILES MANAGEMENT
+ * ----------------------------------------------------------------------------
+ */
+
+/**
+ * Retrieves profiles saved in browser local storage.
+ * Fallback mechanism when offline or before initial Supabase fetch completes.
+ */
 export function getStoredProfiles(): Profile[] {
   if (typeof window === 'undefined') return [];
   try {
@@ -27,17 +54,19 @@ export function getStoredProfiles(): Profile[] {
   return [];
 }
 
+/** Saves profiles list to browser local storage */
 export function saveProfiles(profiles: Profile[]) {
   if (typeof window !== 'undefined') {
     localStorage.setItem(LOCAL_STORAGE_KEY_PROFILES, JSON.stringify(profiles));
   }
 }
 
-// Short-lived in-memory cache to prevent duplicate Supabase fetches during rapid navigation
+// In-memory cache to prevent redundant DB calls during fast UI navigation
 let cachedProfiles: { data: Profile[]; timestamp: number } | null = null;
 let cachedArticles: { data: Article[]; timestamp: number } | null = null;
-const CACHE_TTL_MS = 15000; // 15 seconds
+const CACHE_TTL_MS = 15000; // 15 seconds TTL
 
+/** Invalidates short-lived memory cache to force fresh DB fetch on mutations */
 export function clearDataStoreCache() {
   cachedProfiles = null;
   cachedArticles = null;

@@ -1,15 +1,11 @@
-/**
- * Brand color palette definitions for music, news, and media publications.
- * Auto-detects brand names (e.g. Genius, YouTube, Spotify, Billboard, Arambulo Live, Rappler, Inquirer)
- * and returns vibrant color-coded badge styles, with dynamic HSL hash fallback for custom sites.
- */
-
+// Brand badge style type definition
 export interface BrandBadgeStyle {
   bg: string;
   text: string;
   border: string;
 }
 
+// Preset brand colors for known news outlets and social media platforms
 const BRAND_PRESETS: Record<string, BrandBadgeStyle> = {
   // Genius (Iconic Yellow & Black)
   genius: { bg: '#ffff00', text: '#000000', border: '#e6e600' },
@@ -86,6 +82,7 @@ const BRAND_PRESETS: Record<string, BrandBadgeStyle> = {
   twitter: { bg: '#0284c7', text: '#ffffff', border: '#0369a1' },
 };
 
+// Returns matching badge colors for a website (or auto-generates HSL colors for unknown sites)
 export function getWebsiteBadgeStyle(websiteName?: string | null): BrandBadgeStyle {
   if (!websiteName) {
     return { bg: '#f1f5f9', text: '#334155', border: '#cbd5e1' };
@@ -93,14 +90,14 @@ export function getWebsiteBadgeStyle(websiteName?: string | null): BrandBadgeSty
 
   const cleanName = websiteName.trim().toLowerCase();
 
-  // 1. Direct or partial preset lookup
+  // 1. Check presets first
   for (const [key, val] of Object.entries(BRAND_PRESETS)) {
     if (cleanName.includes(key)) {
       return val;
     }
   }
 
-  // 2. Deterministic Hash-based HSL color generator for any unrecognized brand
+  // 2. Generate hash-based HSL colors for custom websites
   let hash = 0;
   for (let i = 0; i < cleanName.length; i++) {
     hash = cleanName.charCodeAt(i) + ((hash << 5) - hash);

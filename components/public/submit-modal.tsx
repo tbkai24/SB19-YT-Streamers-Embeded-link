@@ -1,5 +1,6 @@
 'use client';
 
+// Component imports for portal modal, data store, and Turnstile spam protection
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Profile, ExtractedMetadata } from '@/types/database';
@@ -8,6 +9,7 @@ import { normalizeUrl, isDuplicateUrl } from '@/lib/url-normalizer';
 import { X, Link2, Sparkles, CheckCircle2, AlertCircle, Loader2, FileText, Share2 } from 'lucide-react';
 import { TurnstileWidget } from '@/components/public/turnstile';
 
+// Submit Modal Component Props
 interface SubmitModalProps {
   profile: Profile;
   isOpen: boolean;
@@ -15,6 +17,7 @@ interface SubmitModalProps {
   onSuccess?: () => void;
 }
 
+// Social platform preset options
 const SOCIAL_PLATFORMS = [
   { value: 'tiktok', label: 'TikTok' },
   { value: 'facebook', label: 'Facebook' },
@@ -25,7 +28,9 @@ const SOCIAL_PLATFORMS = [
   { value: 'other', label: 'Other Social Platform' },
 ] as const;
 
+// Public link submission modal for community members
 export function SubmitModal({ profile, isOpen, onClose, onSuccess }: SubmitModalProps) {
+  // Modal state variables
   const [mounted, setMounted] = useState(false);
   const [url, setUrl] = useState('');
   const [title, setTitle] = useState('');

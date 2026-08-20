@@ -5,6 +5,7 @@ import { Profile, ArticleSubmission } from '@/types/database';
 import { updateProfilesOrderInSupabase } from '@/lib/data-store';
 import { ChevronDown, Plus, Check, Layers, GripVertical } from 'lucide-react';
 
+// Props for ActiveProfileSwitcher component
 interface ProfileSwitcherProps {
   profiles: Profile[];
   activeProfile: Profile | null;
@@ -14,6 +15,7 @@ interface ProfileSwitcherProps {
   onRefreshData?: () => void;
 }
 
+// Admin topbar profile switcher dropdown with drag-and-drop reordering
 export function ActiveProfileSwitcher({
   profiles,
   activeProfile,
@@ -22,16 +24,19 @@ export function ActiveProfileSwitcher({
   onCreateNewProfile,
   onRefreshData,
 }: ProfileSwitcherProps) {
+  // Switcher state management
   const [isOpen, setIsOpen] = useState(false);
   const [profileList, setProfileList] = useState<Profile[]>(profiles);
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
+  // Sync profile list when profiles prop updates
   useEffect(() => {
     setProfileList([...profiles].sort((a, b) => (a.display_order ?? 999) - (b.display_order ?? 999)));
   }, [profiles]);
 
+  // Close dropdown menu when clicking outside container
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
@@ -42,6 +47,7 @@ export function ActiveProfileSwitcher({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  // Drag-and-Drop Handlers for re-ordering profile display order
   const handleDragStart = (e: React.DragEvent, index: number) => {
     setDraggedIndex(index);
     e.dataTransfer.effectAllowed = 'move';
@@ -86,10 +92,12 @@ export function ActiveProfileSwitcher({
     setDragOverIndex(null);
   };
 
+  // Count pending submissions across other inactive profiles
   const totalOtherPending = submissions.filter(s => s.status === 'pending' && s.profile_id !== activeProfile?.id).length;
 
   return (
     <div className="relative" ref={containerRef}>
+      {/* Profile Switcher Trigger Button */}
       <button
         onClick={() => setIsOpen(!isOpen)}
         className="flex items-center gap-2.5 px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 border border-slate-200 text-slate-900 transition-all text-xs font-bold shadow-2xs cursor-pointer relative"
@@ -112,6 +120,7 @@ export function ActiveProfileSwitcher({
         )}
       </button>
 
+      {/* Dropdown Menu List */}
       {isOpen && (
         <div className="absolute left-0 top-full mt-2 w-72 rounded-2xl bg-white p-2.5 border border-slate-200 shadow-2xl z-50 animate-fade-in text-slate-900">
           <div className="px-3 py-1.5 text-[10px] font-black uppercase tracking-wider text-rose-600 flex items-center justify-between border-b border-slate-100 mb-1.5">
@@ -122,6 +131,7 @@ export function ActiveProfileSwitcher({
             <span className="text-[10px] font-semibold text-slate-400">Drag handle to re-order</span>
           </div>
 
+          {/* Draggable profile item list */}
           <div className="max-h-64 overflow-y-auto space-y-1">
             {profileList.map((profile, idx) => {
               const isSelected = activeProfile?.id === profile.id;
@@ -178,6 +188,7 @@ export function ActiveProfileSwitcher({
             })}
           </div>
 
+          {/* Create new profile button */}
           <div className="pt-2 mt-2 border-t border-slate-100">
             <button
               onClick={() => {
